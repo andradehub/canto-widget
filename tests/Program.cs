@@ -16,6 +16,8 @@ status[31] ^= 1; Check(AjazzProtocol.Parse(status) == null, "checksum incorreto 
 status[13] = 101; Checksum(); Check(AjazzProtocol.Parse(status) == null, "percentual acima de 100 rejeitado");
 status[13] = 0; Checksum(); Check(AjazzProtocol.Parse(status) == null, "resposta vazia não vira bateria zero");
 Check(AjazzProtocol.Parse(new byte[4]) == null, "frame truncado rejeitado");
+var realAj139 = Convert.FromHexString("001000010B4D31323936019501003F0100000000000000000000000000000000F6");
+Check(AjazzProtocol.Parse(realAj139)?.Percent == 63, "resposta real do AJ139 Pro M129");
 byte[] announcement = new byte[32]; announcement[0] = 0xC0; announcement[1] = 1; announcement[2] = 42;
 Check(AjazzProtocol.Parse(announcement)?.Percent == 42, "anúncio espontâneo válido");
 announcement[1] = 0; Check(AjazzProtocol.Parse(announcement) == null, "anúncio sem link rejeitado");

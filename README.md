@@ -20,6 +20,8 @@ Consulta a interface de status HID do receptor `249A:5C2F`, interface `MI_02`, e
 
 O adaptador usa o protocolo CompX documentado para essa família de receptores. Também aceita as variantes `248A:5C2F` (receptor) e `248A:5C2E/5D2E/5E2E` (cabo), listadas no driver oficial para o AJ139 Pro. IDs USB podem ser compartilhados entre modelos: a confirmação no seu AJ139 Pro depende de uma resposta válida do próprio firmware. Outras revisões e outros IDs não estão habilitados. Sem resposta, o widget mostra “—”; se houver uma leitura anterior, conserva-a por até três minutos com a indicação de última leitura. Acorde o mouse se ele estiver dormindo. A consulta ocorre a cada 30 segundos; “Atualizar bateria agora” permite consultar manualmente. O indicador de carga só é aceito no modo cabeado.
 
+Validado em hardware: AJ139 Pro com identidade `M129`, conectado pelo receptor `249A:5C2F`. A resposta de identificação e o anúncio espontâneo forneceram a mesma bateria, com checksum válido na identificação. O funcionamento em modo cabeado ainda não foi validado fisicamente.
+
 Para registrar um diagnóstico local:
 
 ```powershell

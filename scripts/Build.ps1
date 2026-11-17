@@ -1,6 +1,8 @@
-﻿param([string]$Dotnet = 'dotnet')
+﻿param([string]$Cargo = 'cargo')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-& $Dotnet publish (Join-Path $root 'src/CantoWidget/CantoWidget.csproj') -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o (Join-Path $root 'publish')
+& $Cargo build --release --locked --manifest-path (Join-Path $root 'Cargo.toml')
 if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar o Canto.' }
+New-Item -ItemType Directory -Force (Join-Path $root 'publish') | Out-Null
+Copy-Item -LiteralPath (Join-Path $root 'target/release/CantoWidget.exe') -Destination (Join-Path $root 'publish/CantoWidget.exe') -Force
 Write-Host ('Pronto: ' + (Join-Path $root 'publish/CantoWidget.exe'))

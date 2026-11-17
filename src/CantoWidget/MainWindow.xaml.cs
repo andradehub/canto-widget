@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent(); args = arguments;
         Loaded += OnLoaded;
-        SourceInitialized += (_, _) => { var helper = new System.Windows.Interop.WindowInteropHelper(this); var style = NativeWindow.GetWindowLongPtr(helper.Handle, -20).ToInt64(); NativeWindow.SetWindowLongPtr(helper.Handle, -20, new IntPtr(style | 0x80 | 0x08000000)); };
+        SourceInitialized += (_, _) => { var helper = new System.Windows.Interop.WindowInteropHelper(this); var style = NativeWindow.GetWindowLongPtr(helper.Handle, -20).ToInt64(); NativeWindow.SetWindowLongPtr(helper.Handle, -20, new IntPtr(style | 0x80 | 0x08000000)); var source = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle); if (source?.CompositionTarget != null) source.CompositionTarget.RenderMode = System.Windows.Interop.RenderMode.SoftwareOnly; };
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += DisplayChanged;
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += PreferencesChanged;
         timer.Tick += async (_, _) => await RefreshAsync();

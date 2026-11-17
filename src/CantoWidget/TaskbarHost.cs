@@ -168,7 +168,7 @@ internal sealed class TaskbarSurface : Forms.Control
         Invalidate(); Update();
     }
     protected override void OnPaint(Forms.PaintEventArgs e) { base.OnPaint(e); if (frame != null) e.Graphics.DrawImageUnscaled(frame, 0, 0); }
-    private DependencyObject? Hit(int x, int y) => content.InputHitTest(new Point(x / scale, y / scale)) as DependencyObject;
+    private DependencyObject? Hit(int x, int y) => VisualTreeHelper.HitTest(content, new Point(x / scale, y / scale))?.VisualHit;
     private static System.Windows.Controls.Button? ButtonAt(DependencyObject? item)
     {
         while (item != null) { if (item is System.Windows.Controls.Button button) return button; item = VisualTreeHelper.GetParent(item); } return null;
@@ -176,7 +176,7 @@ internal sealed class TaskbarSurface : Forms.Control
     protected override void OnMouseUp(Forms.MouseEventArgs e)
     {
         base.OnMouseUp(e);
-        if (e.Button == Forms.MouseButtons.Left && ButtonAt(Hit(e.X, e.Y)) is { IsEnabled: true } button) button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+        if (e.Button == Forms.MouseButtons.Left && ButtonAt(Hit(e.X, e.Y)) is { IsEnabled: true } button) { AppLog.Write("Taskbar: " + button.ToolTip); button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)); }
         RefreshFrame(scale);
     }
     protected override void OnMouseMove(Forms.MouseEventArgs e)

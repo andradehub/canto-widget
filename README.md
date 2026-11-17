@@ -24,7 +24,7 @@ O aplicativo foi reescrito em Rust, com Win32/GDI para desenhar texto, capa e í
 
 A capa só é decodificada quando muda. O desenho nativo é leve e reaproveita fontes e miniaturas em cache. No modo somente bateria, a consulta de mídia é suspensa e as referências do player/capa são liberadas. O mouse é consultado a cada 30 segundos. O monitor de código verifica metadados dos arquivos a cada 5 segundos e só executa o Git quando precisa enviar alterações.
 
-Na máquina de desenvolvimento, a versão anterior usava cerca de 147 MiB de memória residente no aplicativo e 67,5 MiB no auxiliar de sincronização. A versão Rust foi observada em aproximadamente 20–30 MiB, com a sincronização no próprio processo. São amostras de Working Set, que incluem páginas compartilhadas; o consumo varia com player, capa e interação. Não foi aplicada redução artificial do Working Set.
+Na máquina de desenvolvimento, a versão anterior usava cerca de 147 MiB de memória residente no aplicativo e 67,5 MiB no auxiliar de sincronização. A versão Rust foi observada em aproximadamente 16–30 MiB, com a sincronização no próprio processo. São amostras de Working Set, que incluem páginas compartilhadas; o consumo varia com player, capa e interação. Não foi aplicada redução artificial do Working Set.
 
 O executável Rust tem aproximadamente 0,8 MiB; a distribuição não inclui o runtime .NET de cerca de 198 MB do executável anterior.
 

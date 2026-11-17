@@ -67,6 +67,7 @@ impl Default for Data {
         }
     }
 }
+#[derive(Clone, Copy)]
 struct Host {
     shell: HWND,
     rebar: HWND,
@@ -177,7 +178,8 @@ impl App {
             }
         }
         if s.floating {
-            if let Some(host) = self.host.borrow_mut().take() {
+            let previous_host = self.host.borrow_mut().take();
+            if let Some(host) = previous_host {
                 restore(&host);
             }
             if GetParent(hwnd) != null_mut() {
@@ -224,7 +226,8 @@ impl App {
                 .as_ref()
                 .is_none_or(|h| h.shell != shell || IsWindow(h.rebar) == 0);
             if need {
-                if let Some(old) = self.host.borrow_mut().take() {
+                let previous_host = self.host.borrow_mut().take();
+                if let Some(old) = previous_host {
                     restore(&old);
                 }
                 let rebar =
@@ -270,7 +273,7 @@ impl App {
                 ShowWindow(hwnd, SW_HIDE);
                 return;
             }
-            let host = self.host.borrow();
+            let host = *self.host.borrow();
             if let Some(h) = host.as_ref() {
                 let r = h.original_rebar;
                 let b = h.original_buttons;
@@ -350,7 +353,8 @@ impl App {
                 // Create a window with its final parent/style instead of moving
                 // an existing HWND across Explorer's DPI and ownership context.
                 let old = self.widget.replace(null_mut());
-                if let Some(host) = self.host.borrow_mut().take() {
+                let previous_host = self.host.borrow_mut().take();
+                if let Some(host) = previous_host {
                     restore(&host);
                 }
                 if !old.is_null() {
@@ -439,7 +443,8 @@ impl App {
             EXIT => {
                 self.quitting.set(true);
                 self.running.store(false, Ordering::Relaxed);
-                if let Some(h) = self.host.borrow_mut().take() {
+                let previous_host = self.host.borrow_mut().take();
+                if let Some(h) = previous_host {
                     restore(&h);
                 }
                 notify(self.controller.get(), NIM_DELETE);
@@ -730,7 +735,8 @@ unsafe extern "system" fn wndproc(hwnd: HWND, message: u32, w: WPARAM, l: LPARAM
             0
         }
         WM_LBUTTONDOWN => {
-            if app.settings.borrow().floating {
+            let floating = app.settings.borrow().floating;
+            if floating {
                 let mut r: RECT = zeroed();
                 GetClientRect(hwnd, &mut r);
                 let dpi = GetDpiForWindow(hwnd).max(96) as i32;
@@ -751,7 +757,8 @@ unsafe extern "system" fn wndproc(hwnd: HWND, message: u32, w: WPARAM, l: LPARAM
         }
         WM_EXITSIZEMOVE => {
             app.dragging.set(false);
-            if app.settings.borrow().floating {
+            let floating = app.settings.borrow().floating;
+            if floating {
                 let mut r: RECT = zeroed();
                 GetWindowRect(hwnd, &mut r);
                 let mut s = app.settings.borrow_mut();

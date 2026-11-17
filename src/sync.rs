@@ -197,14 +197,18 @@ pub fn start(
                                 *status.lock().unwrap() = "GitHub sincronizado".into();
                             }
                             Err(e) => {
-                                *status.lock().unwrap() =
-                                    if e.contains("rejected") || e.contains("fetch first") {
-                                        "Há alterações remotas para revisar".into()
-                                    } else if e.contains("origin") {
-                                        "Repositório ainda não conectado".into()
-                                    } else {
-                                        "Envio pendente · verifique login e conexão".into()
-                                    };
+                                *status.lock().unwrap() = if e.contains("rejected")
+                                    || e.contains("fetch first")
+                                {
+                                    "Há alterações remotas para revisar".into()
+                                } else if e.contains("Revise") {
+                                    "Revise os arquivos preparados no Git".into()
+                                } else if e.contains("origin") || e.contains("not a git repository")
+                                {
+                                    "Repositório ainda não conectado".into()
+                                } else {
+                                    "Envio pendente · verifique login e conexão".into()
+                                };
                                 retry = Instant::now() + Duration::from_secs(60);
                             }
                         }

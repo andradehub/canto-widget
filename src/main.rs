@@ -91,6 +91,7 @@ struct App {
     battery_tx: mpsc::Sender<()>,
     taskbar_message: u32,
     quitting: Cell<bool>,
+    dragging: Cell<bool>,
 }
 thread_local! {static APP:Cell<*const App>=const{Cell::new(null())};}
 unsafe fn relative(hwnd: HWND) -> RECT {
@@ -162,6 +163,9 @@ impl App {
             return;
         }
         let s = self.settings.borrow().clone();
+        if s.floating && self.dragging.get() {
+            return;
+        }
         let available = self.data.lock().unwrap().music.available;
         let width = s.width(available);
         let mut hwnd = self.widget.get();
@@ -381,8 +385,10 @@ impl App {
                 dialog.hwndOwner = self.controller.get();
                 dialog.rgbResult = render::color(initial);
                 dialog.lpCustColors = colors.as_mut_ptr();
-                dialog.Flags = CC_RGBINIT | CC_FULLOPEN;
-                if ChooseColorW(&mut dialog) != 0 {
+                dialog.Flags = CC_RGBINIT | CC_FULLOPEN | CC_ENABLEHOOK;
+                dialog.lpfnHook = Some(color_hook);
+                let chosen = ChooseColorW(&mut dialog);
+                if chosen != 0 {
                     let mut s = self.settings.borrow_mut();
                     let c = render::rgb(dialog.rgbResult);
                     match id {
@@ -551,6 +557,21 @@ impl App {
             self.action(chosen as u32);
         }
     }
+}
+unsafe extern "system" fn color_hook(hwnd: HWND, message: u32, _: WPARAM, _: LPARAM) -> usize {
+    if message == WM_INITDIALOG {
+        SetWindowPos(
+            hwnd,
+            HWND_TOPMOST,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW,
+        );
+        SetForegroundWindow(hwnd);
+    }
+    0
 }
 unsafe fn item(menu: HMENU, id: u32, label: &str, checked: bool, disabled: bool) {
     AppendMenuW(
@@ -724,7 +745,12 @@ unsafe extern "system" fn wndproc(hwnd: HWND, message: u32, w: WPARAM, l: LPARAM
             }
             0
         }
+        WM_ENTERSIZEMOVE => {
+            app.dragging.set(true);
+            0
+        }
         WM_EXITSIZEMOVE => {
+            app.dragging.set(false);
             if app.settings.borrow().floating {
                 let mut r: RECT = zeroed();
                 GetWindowRect(hwnd, &mut r);
@@ -942,6 +968,7 @@ fn main() {
             battery_tx: bt,
             taskbar_message: RegisterWindowMessageW(wide("TaskbarCreated").as_ptr()),
             quitting: Cell::new(false),
+            dragging: Cell::new(false),
         });
         APP.with(|p| p.set(&*app));
         for class in ["CantoRustController", "CantoRustWidget"] {

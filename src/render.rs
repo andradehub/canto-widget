@@ -96,6 +96,7 @@ impl Cache {
                 );
                 self.scale = dpi;
                 self.cover_key = None;
+                self.cover = None;
             }
             let same = match (&self.cover_key, &music.cover) {
                 (Some(a), Some(b)) => Arc::ptr_eq(a, b),
@@ -105,7 +106,18 @@ impl Cache {
             if !same {
                 self.cover = None;
                 if let Some(bytes) = &music.cover {
-                    if let Ok(decoded) = image::load_from_memory(bytes) {
+                    let decoded = image::ImageReader::new(std::io::Cursor::new(bytes.as_slice()))
+                        .with_guessed_format()
+                        .ok()
+                        .and_then(|mut reader| {
+                            let mut limits = image::Limits::default();
+                            limits.max_image_width = Some(2048);
+                            limits.max_image_height = Some(2048);
+                            limits.max_alloc = Some(16 * 1024 * 1024);
+                            reader.limits(limits);
+                            reader.decode().ok()
+                        });
+                    if let Some(decoded) = decoded {
                         let side = (38 * dpi / 96).max(1) as u32;
                         let image = decoded
                             .resize_to_fill(side, side, image::imageops::FilterType::Triangle)

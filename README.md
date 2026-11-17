@@ -1,74 +1,74 @@
-# Canto
+# Canto · Rust
 
-Sua música e a bateria do mouse, no canto direito do Windows.
+Música e bateria do AJAZZ AJ139 Pro na barra de tarefas ou em um widget flutuante, com interface nativa do Windows.
 
-Widget nativo em C#/WPF, com uma faixa compacta integrada ao tema da barra de tarefas. Mostra capa, faixa, artista, controles de reprodução e bateria do AJAZZ AJ139 Pro. Fica integrado à barra de tarefas do Windows 10, antes da área de notificação e do relógio. A altura acompanha a barra; a seta abre as opções. O ícone da bandeja permite reencaixar o widget ou sair.
+## Usar
 
-O fundo acompanha o tom da barra de tarefas. O conteúdo é composto com transparência sobre uma cor obtida de uma pequena faixa vazia da própria barra; nenhuma captura de tela é salva ou enviada para isso. Os controles usam preenchimentos neutros discretos, e a linha de progresso conserva o destaque verde-azulado.
+Extraia o pacote e abra `publish/CantoWidget.exe`. Não precisa instalar .NET, Rust, navegador embutido ou outro runtime para executar.
 
-## Executar
+A seta do widget e o botão direito abrem as opções:
 
-Abra `publish/CantoWidget.exe`. A distribuição portátil inclui o .NET: o usuário não precisa instalar o SDK nem executar como administrador. A integração foi feita para a barra de tarefas horizontal do Windows 10, versão 2004 ou mais recente, x64. A barra moderna do Windows 11 não é suportada por este encaixe.
+- **Exibição → Player e bateria:** mostra capa, faixa, artista, controles e bateria.
+- **Exibição → Somente bateria:** esconde o player e reduz o widget para 100 px na escala de 100%.
+- **Ocultar player quando não houver mídia:** mostra só a bateria quando o Windows não tem uma sessão de mídia; o player reaparece quando uma sessão fica disponível. Uma faixa pausada continua disponível para dar play.
+- **Posição → Integrado à barra de tarefas:** encaixa o widget antes da área do relógio, com espaço reservado entre os botões dos outros aplicativos.
+- **Posição → Flutuante:** solta o widget; arraste a área da música ou outra área sem botão para reposicionar.
+- **Cores:** fundo automático, cor personalizada do fundo, cor dos ícones e cor do progresso, com seletor nativo do Windows e opção de restaurar as cores padrão.
+- **Iniciar com o Windows**, atualização manual da bateria e pausa da sincronização do código.
 
-Nas opções você pode reencaixar o widget, iniciar com o Windows e pausar a sincronização. Preferências ficam somente em `%LOCALAPPDATA%/CantoWidget/`.
+As preferências são aplicadas na hora e salvas em `%LOCALAPPDATA%/CantoWidget/settings.json`. São locais, sem publicação no GitHub. O modo integrado foi validado na barra horizontal do Windows 10 x64; a barra moderna do Windows 11 não oferece o mesmo encaixe.
 
-O conteúdo WPF é hospedado em uma janela filha da barra de tarefas, criada com `HwndSource`. Uma superfície nativa GDI apresenta o mesmo visual dentro do Explorer e encaminha os cliques aos controles WPF. Não há janela flutuante nem sobreposição sobre outros aplicativos. A área de botões recebe um espaço menor enquanto o widget está aberto e é restaurada ao sair. O encaixe acompanha alterações de tamanho e DPI e tenta se reconectar se o Explorer recriar a barra. O projeto não injeta DLL no Explorer nem substitui arquivos do Windows.
+## Consumo
+
+O aplicativo foi reescrito em Rust, com Win32/GDI para desenhar texto, capa e ícones diretamente. Não usa WPF, renderização contínua de bitmaps, WebView, Electron, Tauri ou processo do PowerShell residente.
+
+A capa só é decodificada quando muda. Os controles são redesenhados quando os dados ou a interação mudam. No modo somente bateria, a consulta de mídia é suspensa e as referências do player/capa são liberadas. O mouse é consultado a cada 30 segundos. O monitor de código verifica metadados dos arquivos a cada 5 segundos e só executa o Git quando precisa enviar alterações.
+
+Na máquina de desenvolvimento, a versão anterior usava cerca de 147 MiB de memória residente no aplicativo e 67,5 MiB no auxiliar de sincronização. A versão Rust foi observada em aproximadamente 20–30 MiB, com a sincronização no próprio processo. São amostras de Working Set, que incluem páginas compartilhadas; o consumo varia com player, capa e interação. Não foi aplicada redução artificial do Working Set.
+
+O executável Rust tem aproximadamente 0,8 MiB; a distribuição não inclui o runtime .NET de cerca de 198 MB do executável anterior.
 
 ## Música
 
-Lê as sessões de mídia do próprio Windows via Global System Media Transport Controls. Prioriza uma sessão que esteja tocando; se nenhuma estiver, usa o player atual. Funciona com os players que disponibilizam essa integração, como Spotify e navegadores compatíveis. A capa e os botões dependem do que o player expõe ao Windows. Se nenhuma sessão existir, mostra “Nada tocando agora”. Não consulta sua conta de streaming nem pede senha.
+Lê as sessões de mídia expostas pelo Windows através de Global System Media Transport Controls. Prioriza uma sessão em reprodução; se não existir, usa a sessão atual. Spotify, Edge e outros players precisam disponibilizar essa integração para mostrar os metadados. Capa e comandos dependem do que o player oferece. Não acessa sua conta de streaming nem pede senha.
 
-## Mouse: AJAZZ AJ139 Pro
+## Bateria AJAZZ AJ139 Pro
 
-Consulta a interface de status HID do receptor `249A:5C2F`, interface `MI_02`, e do cabo `248A:5D2E`. Faz a consulta `0x10`, valida formato, checksum e percentual antes de mostrar. Também reconhece anúncios `0xC0`. Não altera DPI, perfis, botões, iluminação ou firmware.
+Leitura de status pela interface HID `MI_02`, sem alterar DPI, botões, iluminação ou firmware. Receptor `249A:5C2F` validado fisicamente com identidade `M129`. Também reconhece as variantes `248A:5C2F` (receptor) e `248A:5C2E/5D2E/5E2E` (cabo) listadas para a família; o modo cabeado ainda precisa de validação física.
 
-O adaptador usa o protocolo CompX documentado para essa família de receptores. Também aceita as variantes `248A:5C2F` (receptor) e `248A:5C2E/5D2E/5E2E` (cabo), listadas no driver oficial para o AJ139 Pro. IDs USB podem ser compartilhados entre modelos: a confirmação no seu AJ139 Pro depende de uma resposta válida do próprio firmware. Outras revisões e outros IDs não estão habilitados. Sem resposta, o widget mostra “—”; se houver uma leitura anterior, conserva-a por até três minutos com a indicação de última leitura. Acorde o mouse se ele estiver dormindo. A consulta ocorre a cada 30 segundos; “Atualizar bateria agora” permite consultar manualmente. O indicador de carga só é aceito no modo cabeado.
+A consulta `0x10` e os anúncios `0xC0` são validados por formato e faixa de percentual; a identificação exige checksum correto. Se o mouse parar de responder, a última leitura é conservada por até três minutos e marcada no estado. Depois disso aparece “—”. Acorde o mouse ou use **Atualizar bateria agora**.
 
-Validado em hardware: AJ139 Pro com identidade `M129`, conectado pelo receptor `249A:5C2F`. A resposta de identificação e o anúncio espontâneo forneceram a mesma bateria, com checksum válido na identificação. O funcionamento em modo cabeado ainda não foi validado fisicamente.
-
-Para registrar um diagnóstico local:
+Diagnóstico local, sem abrir outra instância da interface:
 
 ```powershell
 ./publish/CantoWidget.exe --diagnostics "$PWD/diagnostics.json"
 ```
 
-Diagnósticos não são enviados ao GitHub pela sincronização automática. Logs locais: `%LOCALAPPDATA%/CantoWidget/canto.log`.
+O diagnóstico não é enviado ao GitHub pela sincronização automática.
 
 ## GitHub automático
 
-Repositório de destino: `andradehub/canto-widget`, público. Se ainda não estiver conectado, use “Conectar e publicar no GitHub” nas opções. O assistente usa o GitHub CLI oficial e pede a autenticação no navegador. Ele verifica a conta, cria o repositório público e envia o código. Também pode ser executado com `./scripts/Connect-GitHub.ps1`.
+Destino deste projeto: [andradehub/canto-widget](https://github.com/andradehub/canto-widget), público.
 
-Depois de autenticar o GitHub e configurar `origin`, o widget inicia o sincronizador enquanto estiver aberto. Após 20 segundos sem alterações, ele cria um commit com data e hora e faz push para a branch atual. Em uma falha de rede ou login, mantém os commits locais e tenta novamente a cada minuto. A seta do widget mostra o estado do envio. Ao pausar ou sair, deixa uma operação Git já iniciada terminar antes de encerrar o sincronizador.
+Com o aplicativo aberto e autenticado, após 20 segundos sem novos salvamentos ele faz commit e push do código na branch atual. Em falha, mantém os commits locais e tenta novamente. A sincronização ocorre em uma thread Rust; o PowerShell só é usado pelo assistente de conexão quando você escolhe essa opção.
 
-Ele sincroniza código em `src/`, scripts, testes, workflow e documentação listados explicitamente no script. Binários, configurações locais, `.env`, chaves e credenciais não entram no envio automático. Arquivos novos de outros tipos precisam ser revisados e incluídos manualmente. Se houver arquivos fora dessa lista já no índice do Git, o sincronizador para e solicita revisão. Nunca executa force push, reset ou merge automático. Se alguém editar a mesma branch remotamente, pause a sincronização, integre a mudança com Git e retome.
+O monitor envia os arquivos de código Rust, Cargo.toml/Cargo.lock, scripts, testes e documentação permitidos explicitamente. Não envia binários, `.env`, configurações pessoais, diagnósticos ou credenciais. Arquivos fora da lista já preparados no índice bloqueiam o envio para revisão. Não executa force push, reset ou merge automático. Alterações remotas divergentes precisam ser integradas manualmente.
 
-Para usar em outro computador, instale Git e GitHub CLI e autentique sua própria conta:
+Mantenha `publish/` dentro da pasta do projeto para sincronizar o código. Um executável copiado isoladamente funciona como widget, mas não encontra o repositório. Outros projetos precisam de sua própria configuração.
 
-```powershell
-gh auth login --hostname github.com --git-protocol https --web
-gh auth setup-git
-git clone https://github.com/andradehub/canto-widget.git
-cd canto-widget
-git config user.name "Seu nome"
-git config user.email "Seu e-mail público ou noreply do GitHub"
-```
+Para conectar, use **Conectar e publicar no GitHub** no menu ou `./scripts/Connect-GitHub.ps1`. O assistente verifica a conta, cria o repositório público se necessário e configura o acesso com GitHub CLI. Nenhum token é gravado no código-fonte.
 
-Mantenha `publish/` dentro da pasta do projeto para o widget localizar o sincronizador. Se você copiar apenas o executável, o widget funciona, mas o código-fonte não é sincronizado. As preferências do aplicativo são locais e não são versionadas. O sincronizador vale para este projeto; outros projetos precisam de sua própria configuração.
+## Compilar e testar
 
-## Compilar e verificar
-
-Com .NET SDK 10:
+Com Rust estável e a cadeia de compilação do Windows instalada:
 
 ```powershell
-dotnet run --project tests/ProtocolTests.csproj -c Release
-./tests/Sync.Tests.ps1
+cargo test --release --locked
 ./scripts/Build.ps1
 ```
 
-Os comandos acima executam os testes e compilam o executável portátil localmente. Binários não são incluídos no histórico Git; são distribuídos separadamente.
+O caminho habitual no Windows é a toolchain MSVC com as ferramentas C++/SDK indicadas no [guia oficial de Rust para Windows](https://learn.microsoft.com/en-us/windows/dev-environment/rust/setup). O código também foi compilado e validado com a toolchain GNU/LLD.
 
-Os testes do protocolo cobrem respostas válidas, carga, report ID, checksum incorreto, resposta vazia e limites de percentual. Os testes de integração usam repositórios locais descartáveis para verificar commit, push, exclusão de credenciais e rejeição de divergência remota.
+Os testes Rust cobrem o pacote real do AJ139 Pro, checksum, limites, modos de exibição, migração/persistência de preferências, cores e integração Git com repositórios locais descartáveis. O teste Git verifica que credenciais ficam fora do commit e que o histórico é preservado. `tests/Sync.Tests.ps1` verifica o assistente de sincronização manual em PowerShell.
 
-Teste adicional de mídia em uma sessão interativa do Windows: `dotnet run --project tests/MediaSmoke/MediaSmoke.csproj -c Release`. Ele abre uma faixa silenciosa de teste, verifica os metadados e envia pausa pela API. Execute sem outro player tocando.
-
-Referências técnicas e créditos em `THIRD_PARTY_NOTICES.md`.
+A versão anterior em C#/WPF permanece no histórico e na release 1.0. A versão 2 é executada em Rust, incluindo interface, mídia, bateria, preferências e sincronização.

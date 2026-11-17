@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+publish/
+work/
+outputs/
+.vs/
+.env
+.env.*
+*.user
+*.suo
+*.log
+*.pfx
+*.pem
+*.key
+*.zip
+*.png
+*.json.tmp

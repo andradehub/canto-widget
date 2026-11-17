@@ -2,7 +2,9 @@
 
 Sua música e a bateria do mouse, no canto direito do Windows.
 
-Widget nativo em C#/WPF, inspirado em uma faixa compacta azul escura. Mostra capa, faixa, artista, controles de reprodução e bateria do AJAZZ AJ139 Pro. Fica integrado à barra de tarefas do Windows 10, antes da área de notificação e do relógio. A altura acompanha a barra; a seta abre as opções. O ícone da bandeja permite reencaixar o widget ou sair.
+Widget nativo em C#/WPF, com uma faixa compacta integrada ao tema da barra de tarefas. Mostra capa, faixa, artista, controles de reprodução e bateria do AJAZZ AJ139 Pro. Fica integrado à barra de tarefas do Windows 10, antes da área de notificação e do relógio. A altura acompanha a barra; a seta abre as opções. O ícone da bandeja permite reencaixar o widget ou sair.
+
+O fundo acompanha o tom da barra de tarefas. O conteúdo é composto com transparência sobre uma cor obtida de uma pequena faixa vazia da própria barra; nenhuma captura de tela é salva ou enviada para isso. Os controles usam preenchimentos neutros discretos, e a linha de progresso conserva o destaque verde-azulado.
 
 ## Executar
 

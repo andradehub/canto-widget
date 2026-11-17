@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly string[] args;
     private readonly Preferences preferences = Preferences.Load();
+    private TaskbarHost? taskbarHost;
     private Forms.NotifyIcon? tray;
     private Process? syncProcess;
     private bool connecting;
@@ -37,12 +38,12 @@ public partial class MainWindow : Window
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += DisplayChanged;
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += PreferencesChanged;
         timer.Tick += async (_, _) => await RefreshAsync();
-        Closed += (_, _) => { closing = true; timer.Stop(); tray?.Dispose(); StopSync(); Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplayChanged; Microsoft.Win32.SystemEvents.UserPreferenceChanged -= PreferencesChanged; };
+        Closed += (_, _) => { closing = true; timer.Stop(); taskbarHost?.Dispose(); tray?.Dispose(); StopSync(); Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplayChanged; Microsoft.Win32.SystemEvents.UserPreferenceChanged -= PreferencesChanged; Application.Current.Shutdown(); };
     }
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        Dock();
-        if (preferences.Left is double x && preferences.Top is double y && IsVisiblePosition(x, y)) { Left = x; Top = y; }
+        taskbarHost = new TaskbarHost(this);
+        taskbarHost.Start();
         repository = FindRepository();
         RefreshStartupLabel();
         SetupTray();
@@ -84,6 +85,7 @@ public partial class MainWindow : Window
             DetailPercent.Text = BatteryText.Text;
             BatteryDetail.Text = battery.Message + (battery.UpdatedAt.HasValue ? $"\nAtualizado às {battery.UpdatedAt:HH:mm:ss}" : "");
             UpdateSyncStatus();
+            TaskbarStatus.Text = taskbarHost?.Status ?? "Conectando à barra de tarefas…";
         }
         catch (Exception ex) { AppLog.Write(ex.ToString()); }
         finally { refreshing = false; }
@@ -98,28 +100,9 @@ public partial class MainWindow : Window
     }
     private void OptionsClick(object sender, RoutedEventArgs e) { UpdateSyncStatus(); Options.IsOpen = !Options.IsOpen; }
     private async void RefreshBatteryClick(object sender, RoutedEventArgs e) { nextBatteryPoll = DateTimeOffset.MinValue; await RefreshAsync(); }
-    private void DragCard(object sender, MouseButtonEventArgs e)
-    {
-        if (FindAncestor<System.Windows.Controls.Button>(e.OriginalSource as DependencyObject) != null) return;
-        if (e.ButtonState == MouseButtonState.Pressed)
-        {
-            try { DragMove(); preferences.Left = Left; preferences.Top = Top; preferences.Save(); } catch (InvalidOperationException) { }
-        }
-    }
-    private static T? FindAncestor<T>(DependencyObject? item) where T : DependencyObject
-    {
-        while (item != null) { if (item is T found) return found; item = VisualTreeHelper.GetParent(item); } return null;
-    }
     private void Dock()
     {
-        var area = SystemParameters.WorkArea;
-        Left = area.Right - Width - 12; Top = area.Bottom - Height - 8;
-    }
-    private bool IsVisiblePosition(double x, double y)
-    {
-        var transform = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice ?? Matrix.Identity;
-        var topLeft = transform.Transform(new Point(x, y));
-        return Forms.Screen.AllScreens.Any(s => s.WorkingArea.Contains((int)topLeft.X, (int)topLeft.Y));
+        taskbarHost?.Layout();
     }
     private void DisplayChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(() => { preferences.Left = preferences.Top = null; Dock(); preferences.Save(); });
     private void PreferencesChanged(object sender, UserPreferenceChangedEventArgs e) { if (preferences.Left == null) Dispatcher.BeginInvoke(Dock); }

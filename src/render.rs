@@ -198,7 +198,8 @@ pub unsafe fn paint(
         );
         let pen = CreatePen(PS_SOLID, p(1).max(1), color(icon));
         let old_pen = SelectObject(dc, pen);
-        let old_brush = SelectObject(dc, GetStockObject(NULL_BRUSH));
+        let empty_brush = GetStockObject(NULL_BRUSH);
+        let old_brush = SelectObject(dc, empty_brush);
         if settings.player_visible(music.available) {
             let side = if settings.floating { 38 } else { 28 };
             let top = center - side / 2;

@@ -22,7 +22,7 @@ As preferências são aplicadas na hora e salvas em `%LOCALAPPDATA%/CantoWidget/
 
 O aplicativo foi reescrito em Rust, com Win32/GDI para desenhar texto, capa e ícones diretamente. Não usa WPF, renderização contínua de bitmaps, WebView, Electron, Tauri ou processo do PowerShell residente.
 
-A capa só é decodificada quando muda. Os controles são redesenhados quando os dados ou a interação mudam. No modo somente bateria, a consulta de mídia é suspensa e as referências do player/capa são liberadas. O mouse é consultado a cada 30 segundos. O monitor de código verifica metadados dos arquivos a cada 5 segundos e só executa o Git quando precisa enviar alterações.
+A capa só é decodificada quando muda. O desenho nativo é leve e reaproveita fontes e miniaturas em cache. No modo somente bateria, a consulta de mídia é suspensa e as referências do player/capa são liberadas. O mouse é consultado a cada 30 segundos. O monitor de código verifica metadados dos arquivos a cada 5 segundos e só executa o Git quando precisa enviar alterações.
 
 Na máquina de desenvolvimento, a versão anterior usava cerca de 147 MiB de memória residente no aplicativo e 67,5 MiB no auxiliar de sincronização. A versão Rust foi observada em aproximadamente 20–30 MiB, com a sincronização no próprio processo. São amostras de Working Set, que incluem páginas compartilhadas; o consumo varia com player, capa e interação. Não foi aplicada redução artificial do Working Set.
 

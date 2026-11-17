@@ -51,7 +51,7 @@ internal sealed class TaskbarHost : IDisposable
             if (source != null) { source.RootVisual = null; source.Dispose(); }
             var parameters = new HwndSourceParameters("CantoTaskbar") { ParentWindow = shell, WindowStyle = 0x40000000 | 0x10000000 | 0x04000000, ExtendedWindowStyle = 0x08000000, Width = 420, Height = 40 };
             source = new HwndSource(parameters);
-            source.CompositionTarget.BackgroundColor = Color.FromRgb(7, 34, 52);
+            source.CompositionTarget.BackgroundColor = Colors.Transparent;
             source.CompositionTarget.RenderMode = RenderMode.SoftwareOnly;
             content.Width = 420; content.Height = 40;
             source.RootVisual = content;
@@ -146,7 +146,7 @@ internal sealed class TaskbarSurface : Forms.Control
     {
         this.shell = shell; this.content = content; this.close = close;
         SetStyle(Forms.ControlStyles.UserPaint | Forms.ControlStyles.AllPaintingInWmPaint | Forms.ControlStyles.OptimizedDoubleBuffer, true);
-        BackColor = Drawing.Color.FromArgb(7, 34, 52); AccessibleName = "Canto: música e bateria do mouse"; TabStop = false;
+        BackColor = Drawing.Color.FromArgb(24, 24, 24); AccessibleName = "Canto: música e bateria do mouse"; TabStop = false;
     }
     protected override Forms.CreateParams CreateParams
     {
@@ -166,7 +166,14 @@ internal sealed class TaskbarSurface : Forms.Control
         var old = frame; frame = new Drawing.Bitmap(decoded); old?.Dispose();
         Invalidate(); Update();
     }
-    protected override void OnPaint(Forms.PaintEventArgs e) { base.OnPaint(e); if (frame != null) e.Graphics.DrawImageUnscaled(frame, 0, 0); }
+    protected override void OnPaint(Forms.PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        var device = e.Graphics.GetHdc();
+        try { DrawThemeParentBackground(Handle, device, IntPtr.Zero); }
+        finally { e.Graphics.ReleaseHdc(device); }
+        if (frame != null) e.Graphics.DrawImageUnscaled(frame, 0, 0);
+    }
     private DependencyObject? Hit(int x, int y) => VisualTreeHelper.HitTest(content, new Point(x / scale, y / scale))?.VisualHit;
     private static System.Windows.Controls.Button? ButtonAt(DependencyObject? item)
     {
@@ -187,7 +194,7 @@ internal sealed class TaskbarSurface : Forms.Control
         {
             if (hovered != null) hovered.Background = previousBackground;
             hovered = button;
-            if (hovered != null) { previousBackground = hovered.Background; hovered.Background = new SolidColorBrush(Color.FromRgb(36, 66, 85)); }
+            if (hovered != null) { previousBackground = hovered.Background; hovered.Background = new SolidColorBrush(Color.FromArgb(32, 255, 255, 255)); }
             Cursor = button == null ? Forms.Cursors.Default : Forms.Cursors.Hand;
             RefreshFrame(scale);
         }
@@ -198,4 +205,5 @@ internal sealed class TaskbarSurface : Forms.Control
     protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); if (hovered != null) hovered.Background = previousBackground; hovered = null; RefreshFrame(scale); }
     protected override void WndProc(ref Forms.Message message) { if (message.Msg == 0x0010) { close(); return; } base.WndProc(ref message); }
     protected override void Dispose(bool disposing) { if (disposing) { frame?.Dispose(); frame = null; tooltip.Dispose(); } base.Dispose(disposing); }
+    [DllImport("uxtheme.dll")] private static extern int DrawThemeParentBackground(IntPtr window, IntPtr device, IntPtr rect);
 }

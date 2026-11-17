@@ -42,7 +42,9 @@ public partial class MainWindow : Window
     }
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        taskbarHost = new TaskbarHost(this);
+        if (taskbarHost != null) return;
+        Options.PlacementTarget = Card;
+        taskbarHost = new TaskbarHost(this, Card);
         taskbarHost.Start();
         repository = FindRepository();
         RefreshStartupLabel();
@@ -55,8 +57,8 @@ public partial class MainWindow : Window
         {
             await Task.Delay(2500); await RefreshAsync();
             Card.UpdateLayout();
-            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(ActualWidth * 2), (int)Math.Ceiling(ActualHeight * 2), 192, 192, PixelFormats.Pbgra32);
-            bitmap.Render(this); var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bitmap));
+            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(Card.ActualWidth * 2), (int)Math.Ceiling(Card.ActualHeight * 2), 192, 192, PixelFormats.Pbgra32);
+            bitmap.Render(Card); var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bitmap));
             using (var stream = File.Create(args[captureIndex + 1])) png.Save(stream);
             Application.Current.Shutdown();
         }
@@ -111,11 +113,11 @@ public partial class MainWindow : Window
     {
         tray = new Forms.NotifyIcon { Icon = System.Drawing.SystemIcons.Information, Text = "Canto · música e bateria do mouse", Visible = true };
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("Mostrar Canto", null, (_, _) => Dispatcher.Invoke(() => { Show(); Dock(); }));
-        menu.Items.Add("Opções", null, (_, _) => Dispatcher.Invoke(() => { Show(); Options.IsOpen = true; }));
+        menu.Items.Add("Mostrar Canto", null, (_, _) => Dispatcher.Invoke(Dock));
+        menu.Items.Add("Opções", null, (_, _) => Dispatcher.Invoke(() => { Dock(); Options.IsOpen = true; }));
         menu.Items.Add("Sair", null, (_, _) => Dispatcher.Invoke(() => Application.Current.Shutdown()));
         tray.ContextMenuStrip = menu;
-        tray.DoubleClick += (_, _) => Dispatcher.Invoke(() => { Show(); Dock(); });
+        tray.DoubleClick += (_, _) => Dispatcher.Invoke(Dock);
     }
     private void RefreshStartupLabel()
     {

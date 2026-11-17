@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace CantoWidget;
@@ -13,6 +14,8 @@ namespace CantoWidget;
 internal sealed class TaskbarHost : IDisposable
 {
     private readonly Window window;
+    private readonly FrameworkElement content;
+    private HwndSource? source;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private IntPtr taskbar;
     private IntPtr rebar;
@@ -22,14 +25,13 @@ internal sealed class TaskbarHost : IDisposable
     private IntPtr handle;
     public bool Attached { get; private set; }
     public string Status { get; private set; } = "Conectando à barra de tarefas…";
-    public TaskbarHost(Window window) { this.window = window; timer.Tick += (_, _) => Layout(); }
-    public void Start() { handle = new WindowInteropHelper(window).Handle; Layout(); timer.Start(); }
+    public TaskbarHost(Window window, FrameworkElement content) { this.window = window; this.content = content; timer.Tick += (_, _) => Layout(); }
+    public void Start() { window.Content = null; window.Hide(); Layout(); timer.Start(); }
     public void Layout()
     {
-        if (handle == IntPtr.Zero || !IsWindow(handle)) return;
         var shell = FindWindowW("Shell_TrayWnd", null);
-        if (shell == IntPtr.Zero) { Status = "Aguardando a barra de tarefas"; ShowWindow(handle, 0); return; }
-        if (shell != taskbar || GetParent(handle) != shell)
+        if (shell == IntPtr.Zero) { Status = "Aguardando a barra de tarefas"; if (handle != IntPtr.Zero) ShowWindow(handle, 0); return; }
+        if (shell != taskbar || handle == IntPtr.Zero || !IsWindow(handle) || GetParent(handle) != shell)
         {
             RestoreSpace();
             taskbar = shell;
@@ -41,15 +43,15 @@ internal sealed class TaskbarHost : IDisposable
             }
             originalRebar = RelativeRect(rebar);
             originalButtons = RelativeRect(taskButtons);
-            long style = GetWindowLongPtrW(handle, -16).ToInt64() & 0xFFFFFFFFL;
-            SetWindowLongPtrW(handle, -16, new IntPtr((style & ~0x80000000L) | 0x40000000L));
-            SetParent(handle, shell);
-            if (GetParent(handle) != shell)
-            {
-                SetWindowLongPtrW(handle, -16, new IntPtr(style));
-                Attached = false; Status = "Não foi possível anexar à barra de tarefas";
-                AppLog.Write("Taskbar SetParent: " + Marshal.GetLastWin32Error()); ShowWindow(handle, 0); return;
-            }
+            if (source != null) { source.RootVisual = null; source.Dispose(); }
+            var parameters = new HwndSourceParameters("CantoTaskbar") { ParentWindow = shell, WindowStyle = 0x40000000 | 0x10000000 | 0x04000000, ExtendedWindowStyle = 0x08000000, Width = 420, Height = 40 };
+            source = new HwndSource(parameters);
+            handle = source.Handle;
+            source.CompositionTarget.BackgroundColor = Color.FromRgb(7, 34, 52);
+            source.CompositionTarget.RenderMode = RenderMode.SoftwareOnly;
+            content.Width = 420; content.Height = 40;
+            source.RootVisual = content;
+            source.AddHook((IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled) => { if (message == 0x0010) { window.Dispatcher.BeginInvoke(window.Close); handled = true; } return IntPtr.Zero; });
             Attached = true;
         }
         GetClientRect(shell, out var client);
@@ -80,8 +82,8 @@ internal sealed class TaskbarHost : IDisposable
         var start = FindWindowExW(shell, IntPtr.Zero, "Start", null);
         int minimumLeft = start == IntPtr.Zero ? 48 : RelativeRect(start).Right;
         if (left < minimumLeft + 100 * scale) { Status = "Sem espaço livre na barra de tarefas"; ShowWindow(handle, 0); RestoreSpace(); return; }
-        window.Width = width / scale;
-        window.Height = client.Bottom / scale;
+        content.Width = width / scale;
+        content.Height = client.Bottom / scale;
         int rebarWidth = Math.Max(1, left - originalRebar.Left);
         SetWindowPos(rebar, IntPtr.Zero, originalRebar.Left, originalRebar.Top, rebarWidth, originalRebar.Bottom - originalRebar.Top, 0x14);
         SetWindowPos(taskButtons, IntPtr.Zero, originalButtons.Left, originalButtons.Top, Math.Max(1, rebarWidth - originalButtons.Left), originalButtons.Bottom - originalButtons.Top, 0x14);
@@ -100,13 +102,12 @@ internal sealed class TaskbarHost : IDisposable
         if (rebar != IntPtr.Zero && IsWindow(rebar)) SetWindowPos(rebar, IntPtr.Zero, originalRebar.Left, originalRebar.Top, originalRebar.Right - originalRebar.Left, originalRebar.Bottom - originalRebar.Top, 0x14);
         if (taskButtons != IntPtr.Zero && IsWindow(taskButtons)) SetWindowPos(taskButtons, IntPtr.Zero, originalButtons.Left, originalButtons.Top, originalButtons.Right - originalButtons.Left, originalButtons.Bottom - originalButtons.Top, 0x14);
     }
-    public void Dispose() { timer.Stop(); RestoreSpace(); }
+    public void Dispose() { timer.Stop(); RestoreSpace(); if (source != null) { source.RootVisual = null; source.Dispose(); source = null; } }
     [StructLayout(LayoutKind.Sequential)] private struct Rect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] private struct NativePoint { public int X, Y; }
     private delegate bool EnumProc(IntPtr window, IntPtr state);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowW(string className, string? name);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowExW(IntPtr parent, IntPtr after, string className, string? name);
-    [DllImport("user32.dll", SetLastError = true)] private static extern IntPtr SetParent(IntPtr child, IntPtr parent);
     [DllImport("user32.dll")] private static extern IntPtr GetParent(IntPtr child);
     [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out Rect rect);
     [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr window, out Rect rect);
@@ -118,6 +119,4 @@ internal sealed class TaskbarHost : IDisposable
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr window);
     [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr window, EnumProc callback, IntPtr state);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassNameW(IntPtr window, StringBuilder buffer, int length);
-    [DllImport("user32.dll")] private static extern IntPtr GetWindowLongPtrW(IntPtr window, int index);
-    [DllImport("user32.dll")] private static extern IntPtr SetWindowLongPtrW(IntPtr window, int index, IntPtr value);
 }

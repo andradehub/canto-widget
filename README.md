@@ -2,13 +2,15 @@
 
 Sua música e a bateria do mouse, no canto direito do Windows.
 
-Widget nativo em C#/WPF, inspirado em uma faixa compacta azul escura. Mostra capa, faixa, artista, controles de reprodução e bateria do AJAZZ AJ139 Pro. Fica acima da barra de tarefas, sempre visível, sem botão na barra. Arraste para reposicionar; a seta abre as opções. O ícone da bandeja permite mostrar o widget ou sair.
+Widget nativo em C#/WPF, inspirado em uma faixa compacta azul escura. Mostra capa, faixa, artista, controles de reprodução e bateria do AJAZZ AJ139 Pro. Fica integrado à barra de tarefas do Windows 10, antes da área de notificação e do relógio. A altura acompanha a barra; a seta abre as opções. O ícone da bandeja permite reencaixar o widget ou sair.
 
 ## Executar
 
-Abra `publish/CantoWidget.exe`. A distribuição portátil inclui o .NET: o usuário não precisa instalar o SDK nem executar como administrador. Windows 10 2004 ou mais recente, Windows 11, x64.
+Abra `publish/CantoWidget.exe`. A distribuição portátil inclui o .NET: o usuário não precisa instalar o SDK nem executar como administrador. A integração foi feita para a barra de tarefas horizontal do Windows 10, versão 2004 ou mais recente, x64. A barra moderna do Windows 11 não é suportada por este encaixe.
 
-Nas opções você pode restaurar o canto direito, iniciar com o Windows e pausar a sincronização. Posição e preferências ficam somente em `%LOCALAPPDATA%/CantoWidget/`.
+Nas opções você pode reencaixar o widget, iniciar com o Windows e pausar a sincronização. Preferências ficam somente em `%LOCALAPPDATA%/CantoWidget/`.
+
+O conteúdo é hospedado em uma janela filha da barra de tarefas, criada com `HwndSource`. Não há janela flutuante nem sobreposição sobre outros aplicativos. A área de botões recebe um espaço menor enquanto o widget está aberto e é restaurada ao sair. O encaixe acompanha alterações de tamanho e DPI e tenta se reconectar se o Explorer recriar a barra. O projeto não injeta DLL no Explorer nem substitui arquivos do Windows.
 
 ## Música
 
@@ -61,10 +63,10 @@ dotnet run --project tests/ProtocolTests.csproj -c Release
 ./scripts/Build.ps1
 ```
 
-O GitHub Actions executa os testes, compila o aplicativo e disponibiliza `CantoWidget-Windows-x64` como artefato de cada execução. O workflow não publica credenciais nem binários no histórico Git.
+Os comandos acima executam os testes e compilam o executável portátil localmente. Binários não são incluídos no histórico Git; são distribuídos separadamente.
 
 Os testes do protocolo cobrem respostas válidas, carga, report ID, checksum incorreto, resposta vazia e limites de percentual. Os testes de integração usam repositórios locais descartáveis para verificar commit, push, exclusão de credenciais e rejeição de divergência remota.
 
-Teste adicional de mídia em uma sessão interativa do Windows (não é executado no CI): `dotnet run --project tests/MediaSmoke/MediaSmoke.csproj -c Release`. Ele abre uma faixa silenciosa de teste, verifica os metadados e envia pausa pela API. Execute sem outro player tocando.
+Teste adicional de mídia em uma sessão interativa do Windows: `dotnet run --project tests/MediaSmoke/MediaSmoke.csproj -c Release`. Ele abre uma faixa silenciosa de teste, verifica os metadados e envia pausa pela API. Execute sem outro player tocando.
 
 Referências técnicas e créditos em `THIRD_PARTY_NOTICES.md`.

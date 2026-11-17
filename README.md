@@ -10,7 +10,7 @@ Abra `publish/CantoWidget.exe`. A distribuição portátil inclui o .NET: o usu�
 
 Nas opções você pode reencaixar o widget, iniciar com o Windows e pausar a sincronização. Preferências ficam somente em `%LOCALAPPDATA%/CantoWidget/`.
 
-O conteúdo é hospedado em uma janela filha da barra de tarefas, criada com `HwndSource`. Não há janela flutuante nem sobreposição sobre outros aplicativos. A área de botões recebe um espaço menor enquanto o widget está aberto e é restaurada ao sair. O encaixe acompanha alterações de tamanho e DPI e tenta se reconectar se o Explorer recriar a barra. O projeto não injeta DLL no Explorer nem substitui arquivos do Windows.
+O conteúdo WPF é hospedado em uma janela filha da barra de tarefas, criada com `HwndSource`. Uma superfície nativa GDI apresenta o mesmo visual dentro do Explorer e encaminha os cliques aos controles WPF. Não há janela flutuante nem sobreposição sobre outros aplicativos. A área de botões recebe um espaço menor enquanto o widget está aberto e é restaurada ao sair. O encaixe acompanha alterações de tamanho e DPI e tenta se reconectar se o Explorer recriar a barra. O projeto não injeta DLL no Explorer nem substitui arquivos do Windows.
 
 ## Música
 

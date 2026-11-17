@@ -155,6 +155,7 @@ internal sealed class TaskbarSurface : Forms.Control
     public void RefreshFrame(double scale)
     {
         this.scale = scale;
+        BackColor = SampleTaskbarColor();
         content.UpdateLayout();
         int width = Math.Max(1, (int)Math.Round(content.ActualWidth * scale));
         int height = Math.Max(1, (int)Math.Round(content.ActualHeight * scale));
@@ -169,9 +170,7 @@ internal sealed class TaskbarSurface : Forms.Control
     protected override void OnPaint(Forms.PaintEventArgs e)
     {
         base.OnPaint(e);
-        var device = e.Graphics.GetHdc();
-        try { DrawThemeParentBackground(Handle, device, IntPtr.Zero); }
-        finally { e.Graphics.ReleaseHdc(device); }
+        e.Graphics.Clear(BackColor);
         if (frame != null) e.Graphics.DrawImageUnscaled(frame, 0, 0);
     }
     private DependencyObject? Hit(int x, int y) => VisualTreeHelper.HitTest(content, new Point(x / scale, y / scale))?.VisualHit;
@@ -205,5 +204,28 @@ internal sealed class TaskbarSurface : Forms.Control
     protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); if (hovered != null) hovered.Background = previousBackground; hovered = null; RefreshFrame(scale); }
     protected override void WndProc(ref Forms.Message message) { if (message.Msg == 0x0010) { close(); return; } base.WndProc(ref message); }
     protected override void Dispose(bool disposing) { if (disposing) { frame?.Dispose(); frame = null; tooltip.Dispose(); } base.Dispose(disposing); }
-    [DllImport("uxtheme.dll")] private static extern int DrawThemeParentBackground(IntPtr window, IntPtr device, IntPtr rect);
+    private Drawing.Color SampleTaskbarColor()
+    {
+        GetWindowRect(Handle, out var rect);
+        var screen = GetDC(IntPtr.Zero);
+        try
+        {
+            int red = 0, green = 0, blue = 0, count = 0;
+            // Read only the taskbar's empty upper inset immediately before us.
+            // Sampling outside this control avoids feeding our own color back in.
+            for (int offset = 4; offset <= 12; offset += 2)
+            {
+                uint pixel = GetPixel(screen, rect.Left - offset, rect.Top + 2);
+                if (pixel == 0xFFFFFFFF) continue;
+                red += (int)(pixel & 255); green += (int)((pixel >> 8) & 255); blue += (int)((pixel >> 16) & 255); count++;
+            }
+            return count == 0 ? BackColor : Drawing.Color.FromArgb(red / count, green / count, blue / count);
+        }
+        finally { ReleaseDC(IntPtr.Zero, screen); }
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct SurfaceRect { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out SurfaceRect rect);
+    [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr window);
+    [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr window, IntPtr device);
+    [DllImport("gdi32.dll")] private static extern uint GetPixel(IntPtr device, int x, int y);
 }

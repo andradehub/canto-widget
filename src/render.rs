@@ -261,6 +261,7 @@ pub unsafe fn paint(
                         if hover == action { 32 } else { 18 },
                     )));
                     SelectObject(dc, b);
+                    SelectObject(dc, GetStockObject(NULL_PEN));
                     RoundRect(
                         dc,
                         p(x),
@@ -270,7 +271,8 @@ pub unsafe fn paint(
                         p(7),
                         p(7),
                     );
-                    SelectObject(dc, old_brush);
+                    SelectObject(dc, empty_brush);
+                    SelectObject(dc, pen);
                     DeleteObject(b);
                 }
                 let mid = x + bw / 2;
@@ -281,6 +283,7 @@ pub unsafe fn paint(
                 };
                 let b = CreateSolidBrush(color(c));
                 SelectObject(dc, b);
+                SelectObject(dc, GetStockObject(NULL_PEN));
                 if action == 2 && music.playing {
                     fill(dc, r(mid - 5, center - 6, 3, 12), c);
                     fill(dc, r(mid + 2, center - 6, 3, 12), c);
@@ -330,7 +333,8 @@ pub unsafe fn paint(
                         );
                     }
                 }
-                SelectObject(dc, old_brush);
+                SelectObject(dc, empty_brush);
+                SelectObject(dc, pen);
                 DeleteObject(b);
             }
             fill(dc, r(w - 96, center - 14, 1, 28), blend(bg, foreground, 38));

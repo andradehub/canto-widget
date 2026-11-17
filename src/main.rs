@@ -343,6 +343,15 @@ impl App {
         match id {
             MODE_BAR | MODE_FLOAT => {
                 self.settings.borrow_mut().floating = id == MODE_FLOAT;
+                // Create a window with its final parent/style instead of moving
+                // an existing HWND across Explorer's DPI and ownership context.
+                let old = self.widget.replace(null_mut());
+                if let Some(host) = self.host.borrow_mut().take() {
+                    restore(&host);
+                }
+                if !old.is_null() {
+                    DestroyWindow(old);
+                }
                 self.apply();
             }
             SHOW_PLAYER | BATTERY_ONLY => {
@@ -869,6 +878,18 @@ fn workers(
         .expect("battery thread");
 }
 fn main() {
+    std::panic::set_hook(Box::new(|info| {
+        use std::io::Write;
+        let dir = settings::data_dir();
+        let _ = std::fs::create_dir_all(&dir);
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(dir.join("rust-errors.log"))
+        {
+            let _ = writeln!(file, "{info}");
+        }
+    }));
     let args = std::env::args().collect::<Vec<_>>();
     if let Some(i) = args.iter().position(|a| a == "--sync-once") {
         if let Some(repo) = args.get(i + 1) {

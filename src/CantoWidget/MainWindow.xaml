@@ -1,4 +1,4 @@
-<Window x:Class="CantoWidget.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Canto" Width="420" Height="40" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent" Topmost="False" ShowInTaskbar="False" FontFamily="Segoe UI" Foreground="#ECF5FA" UseLayoutRounding="True">
+<Window x:Class="CantoWidget.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Canto" Width="420" Height="40" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="False" Background="#072234" Topmost="False" ShowInTaskbar="False" FontFamily="Segoe UI" Foreground="#ECF5FA" UseLayoutRounding="True">
   <Border x:Name="Card" Margin="0" CornerRadius="0" BorderThickness="0" Background="#FF072234">
     <Grid>
       <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="2"/></Grid.RowDefinitions>

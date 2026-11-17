@@ -21,17 +21,34 @@ pub struct Media {
     session: Option<GlobalSystemMediaTransportControlsSession>,
     key: String,
     cover: Option<Arc<Vec<u8>>>,
-    initialized: bool,
 }
+// WinRT activation factories are cached by windows-rs. Keep their apartment
+// alive for the worker's lifetime, including while the player is hidden.
+// Sessions and cover buffers still drop immediately when hiding the player.
+struct Apartment(bool);
+impl Apartment {
+    fn new() -> Self {
+        Self(unsafe { RoInitialize(RO_INIT_MULTITHREADED).is_ok() })
+    }
+}
+impl Drop for Apartment {
+    fn drop(&mut self) {
+        if self.0 {
+            unsafe {
+                RoUninitialize();
+            }
+        }
+    }
+}
+thread_local! { static APARTMENT: Apartment = Apartment::new(); }
 impl Media {
     pub fn new() -> Self {
-        let initialized = unsafe { RoInitialize(RO_INIT_MULTITHREADED).is_ok() };
+        APARTMENT.with(|_| {});
         Self {
             manager: None,
             session: None,
             key: String::new(),
             cover: None,
-            initialized,
         }
     }
     fn poll(&mut self) -> windows::core::Result<Music> {
@@ -134,17 +151,6 @@ impl Media {
             };
             if let Ok(op) = op {
                 let _ = op.join();
-            }
-        }
-    }
-}
-impl Drop for Media {
-    fn drop(&mut self) {
-        self.session.take();
-        self.manager.take();
-        if self.initialized {
-            unsafe {
-                RoUninitialize();
             }
         }
     }

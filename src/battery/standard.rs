@@ -198,7 +198,10 @@ unsafe fn hid_percent(handle: HANDLE, ppd: PHIDP_PREPARSED_DATA, caps: &HIDP_CAP
     None
 }
 pub(super) unsafe fn read(candidates: &[Vec<u16>]) -> Battery {
-    let system = system();
+    let mut system = system();
+    if system.message.is_empty() {
+        system.message = "Nenhum mouse com bateria disponível".into();
+    }
     if system.percent.is_some() {
         return system;
     }

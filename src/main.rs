@@ -582,7 +582,7 @@ impl App {
         item(
             menu,
             AUTO_SYNC,
-            "Sincronização automática",
+            "Enviar alterações do código ao GitHub",
             s.auto_sync,
             false,
         );

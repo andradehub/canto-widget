@@ -1,6 +1,6 @@
 # Canto · Rust
 
-Música e bateria do AJAZZ AJ139 Pro na barra de tarefas ou em um widget flutuante, com interface nativa do Windows.
+Música e bateria de mouses compatíveis na barra de tarefas ou em um widget flutuante, com interface nativa do Windows. A detecção usa dados do Windows, o padrão HID e protocolos específicos de fabricantes.
 
 ## Usar
 
@@ -12,7 +12,7 @@ A seta do widget e o botão direito abrem as opções:
 - **Exibição → Somente bateria:** esconde o player e reduz o widget para 100 px na escala de 100%.
 - **Ocultar player quando não houver mídia:** mostra só a bateria quando o Windows não tem uma sessão de mídia; o player reaparece quando uma sessão fica disponível. Uma faixa pausada continua disponível para dar play.
 - **Posição → Integrado à barra de tarefas:** encaixa o widget antes da área do relógio, com espaço reservado entre os botões dos outros aplicativos.
-- **Posição → Flutuante:** solta o widget; arraste a área da música ou outra área sem botão para reposicionar.
+- **Posição → Flutuante:** solta o widget, com cantos arredondados e contorno discreto; arraste a área da música ou outra área sem botão para reposicionar.
 - **Cores → Automático:** fundo transparente na barra de tarefas; no modo flutuante, usa vidro com blur e tonalidade discreta.
 - **Cores → Desfoque no modo flutuante:** liga ou desliga o blur. A cor escolhida para o fundo também pode ser usada como tonalidade do vidro.
 - **Cores → Fundo totalmente transparente:** remove o fundo nos dois modos e desliga o blur. A área transparente continua recebendo cliques e pode ser arrastada no modo flutuante.
@@ -39,11 +39,21 @@ O executável Rust tem aproximadamente 0,8 MiB; a distribuição não inclui o r
 
 Lê as sessões de mídia expostas pelo Windows através de Global System Media Transport Controls. Prioriza uma sessão em reprodução; se não existir, usa a sessão atual. Spotify, Edge e outros players precisam disponibilizar essa integração para mostrar os metadados. Capa e comandos dependem do que o player oferece. Não acessa sua conta de streaming nem pede senha.
 
-## Bateria AJAZZ AJ139 Pro
+## Bateria do mouse
 
-Leitura de status pela interface HID `MI_02`, sem alterar DPI, botões, iluminação ou firmware. Receptor `249A:5C2F` validado fisicamente com identidade `M129`. Também reconhece as variantes `248A:5C2F` (receptor) e `248A:5C2E/5D2E/5E2E` (cabo) listadas para a família; o modo cabeado ainda precisa de validação física.
+O aplicativo procura automaticamente um mouse com uma leitura válida de bateria. O nome detectado e o estado aparecem no menu. Não é necessário editar o código para usar outro modelo que informe a bateria por um dos caminhos implementados:
 
-A consulta `0x10` e os anúncios `0xC0` são validados por formato e faixa de percentual; a identificação exige checksum correto. Se o mouse parar de responder, a última leitura é conservada por até três minutos e marcada no estado. Depois disso aparece “—”. Acorde o mouse ou use **Atualizar bateria agora**.
+| Caminho | Dispositivos atendidos | Validação |
+| --- | --- | --- |
+| Windows | Mouses cuja bateria é disponibilizada pelo sistema/driver, incluindo dispositivos Bluetooth compatíveis | Leitura de propriedades implementada; outros modelos precisam de validação física |
+| HID padrão | Mouses de qualquer marca que exponham `Battery Strength` em um relatório Feature ou Input da coleção de mouse | Interpretação e escala testadas; aguardando validação em hardware compatível |
+| AJAZZ/CompX | Receptor `249A:5C2F`, `248A:5C2F` e variantes cabeadas `248A:5C2E/5D2E/5E2E` reconhecidas | AJ139 Pro por receptor `249A:5C2F` validado fisicamente; outras variantes ainda não |
+
+Conectar por USB ou Bluetooth, por si só, não garante que um mouse forneça sua bateria. Receptores com protocolo proprietário precisam de suporte específico. Um mouse com fio sem bateria não tem percentual a mostrar; um modelo recarregável ligado pelo cabo pode informar a bateria se seu protocolo for compatível. Quando não existe leitura válida, aparece “—”, sem inventar um percentual. Havendo vários mouses, é usada a primeira leitura disponível, priorizando o protocolo específico já reconhecido.
+
+As consultas não alteram DPI, botões, iluminação ou firmware. O caminho HID padrão só consulta relatórios declarados de bateria, sem consumir os eventos de movimento. A escala segue o intervalo lógico informado pelo dispositivo; valores fora dele são rejeitados. A leitura do Windows usa propriedades de bateria dos nós do mouse e de seus pais; a propriedade do provedor Bluetooth pode variar entre versões do Windows.
+
+No protocolo AJAZZ/CompX, a consulta `0x10` e os anúncios `0xC0` são validados por formato e faixa de percentual; a identificação exige checksum correto. Se o mesmo dispositivo parar de responder, a última leitura pode ser conservada por até três minutos, marcada no estado. Ao remover ou trocar o dispositivo, a leitura anterior não é reaproveitada para outro mouse. Acorde o mouse ou use **Atualizar bateria agora**.
 
 Diagnóstico local, sem abrir outra instância da interface:
 
@@ -53,17 +63,19 @@ Diagnóstico local, sem abrir outra instância da interface:
 
 O diagnóstico não é enviado ao GitHub pela sincronização automática.
 
-## GitHub automático
+## Backup automático do código no GitHub (opcional)
 
 Destino deste projeto: [andradehub/canto-widget](https://github.com/andradehub/canto-widget), público.
 
 Com o aplicativo aberto e autenticado, após 20 segundos sem novos salvamentos ele faz commit e push do código na branch atual. Em falha, mantém os commits locais e tenta novamente. A sincronização ocorre em uma thread Rust; o PowerShell só é usado pelo assistente de conexão quando você escolhe essa opção.
 
-O monitor envia os arquivos de código Rust, Cargo.toml/Cargo.lock, scripts, testes e documentação permitidos explicitamente. Não envia binários, `.env`, configurações pessoais, diagnósticos ou credenciais. Arquivos fora da lista já preparados no índice bloqueiam o envio para revisão. Não executa force push, reset ou merge automático. Alterações remotas divergentes precisam ser integradas manualmente.
+Isso serve para guardar o histórico das alterações no projeto e manter uma cópia do código no repositório. Por exemplo: editar e salvar `src/render.rs` gera um commit após o intervalo de espera e envia essa revisão ao GitHub. Alterar a cor, a posição ou o modo de exibição muda apenas as preferências locais. O widget funciona sem esse backup; quem só quer usar player e bateria pode desativar **Enviar alterações do código ao GitHub** no menu. Recompilar e instalar uma nova versão são etapas separadas.
+
+O monitor envia os arquivos de código Rust, Cargo.toml/Cargo.lock, manifesto, scripts, testes e documentação permitidos explicitamente. Não envia músicas, capas, percentuais de bateria, binários, `.env`, configurações pessoais, diagnósticos ou credenciais. Arquivos fora da lista já preparados no índice bloqueiam o envio para revisão. Não executa force push, reset ou merge automático. Alterações remotas divergentes precisam ser integradas manualmente.
 
 Mantenha `publish/` dentro da pasta do projeto para sincronizar o código. Um executável copiado isoladamente funciona como widget, mas não encontra o repositório. Outros projetos precisam de sua própria configuração.
 
-Para conectar, use **Conectar e publicar no GitHub** no menu ou `./scripts/Connect-GitHub.ps1`. O assistente verifica a conta, cria o repositório público se necessário e configura o acesso com GitHub CLI. Nenhum token é gravado no código-fonte.
+Para conectar um checkout seu, use **Conectar e publicar no GitHub** no menu ou `./scripts/Connect-GitHub.ps1`. O assistente usa a conta ativa do GitHub CLI, cria o repositório público se necessário e configura o acesso. Um `origin` já existente é preservado e precisa corresponder ao destino. Nenhum token é gravado no código-fonte.
 
 ## Compilar e testar
 

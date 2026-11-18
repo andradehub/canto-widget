@@ -1,4 +1,4 @@
-﻿param([string]$Account = 'andradehub', [string]$RepositoryName = 'canto-widget')
+﻿param([string]$Account = '', [string]$RepositoryName = 'canto-widget')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 function Require-Success([string]$message) { if ($LASTEXITCODE -ne 0) { throw $message } }
@@ -37,12 +37,13 @@ $previousPreference = $ErrorActionPreference; $ErrorActionPreference = 'Continue
 $authExit = $LASTEXITCODE
 $ErrorActionPreference = $previousPreference
 if ($authExit -ne 0) {
-    Write-Host 'Entre com a conta andradehub na página de autenticação e autorize o código apresentado.'
+    Write-Host 'Entre com sua conta do GitHub na página de autenticação e autorize o código apresentado.'
     & $gh auth login --hostname github.com --git-protocol https --web
     Require-Success 'A autenticação não foi concluída.'
 }
 $login = & $gh api user --jq '.login'
 Require-Success 'Não foi possível verificar sua conta.'
+if (-not $Account) { $Account = $login }
 if ($login -ne $Account) { throw "A conta ativa é $login. Entre como $Account no GitHub CLI antes de publicar." }
 & $gh auth setup-git --hostname github.com
 Require-Success 'Não foi possível configurar o acesso Git.'

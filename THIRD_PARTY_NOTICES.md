@@ -4,6 +4,8 @@ Implementação própria em Rust/Win32. Nenhum código-fonte dos projetos de pro
 
 - Microsoft: [Global System Media Transport Controls](https://learn.microsoft.com/en-us/uwp/api/windows.media.control.globalsystemmediatransportcontrolssessionmanager).
 - Microsoft: [Win32](https://learn.microsoft.com/en-us/windows/win32/) e [Windows bindings for Rust](https://github.com/microsoft/windows-rs).
+- Bateria padrão: [USB HID Usage Tables](https://www.usb.org/sites/default/files/hut1_21_0.pdf), página Generic Device Controls/Battery Strength; [HidP_GetUsageValue](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/hidpi/nf-hidpi-hidp_getusagevalue); [System.Devices.BatteryLife](https://learn.microsoft.com/en-us/windows/win32/properties/props-system-devices-batterylife).
+- Propriedade de bateria do provedor Bluetooth do Windows: [Xm4Battery](https://github.com/nikvoronin/Xm4Battery), documentação dos identificadores. A chave do provedor não constitui um contrato público estável da Microsoft.
 - Design: [materiais em aplicativos Windows](https://learn.microsoft.com/en-us/windows/apps/develop/ui/materials), com superfícies discretas e destaque de progresso.
 - Protocolo AJAZZ/CompX: [Ajazzy](https://github.com/Geovane2dd/Ajazzy/blob/main/docs/reverse-engineering.md), [HaloBattery issue #74](https://github.com/HeyOkay/HaloBattery/issues/74) e [johan-akn/aj179-linux](https://github.com/johan-akn/aj179-linux).
 

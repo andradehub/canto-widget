@@ -17,7 +17,7 @@ A seta do widget e o botão direito abrem as opções:
 - **Cores → Desfoque no modo flutuante:** liga ou desliga o blur. A cor escolhida para o fundo também pode ser usada como tonalidade do vidro.
 - **Cores → Fundo totalmente transparente:** remove o fundo nos dois modos e desliga o blur. A área transparente continua recebendo cliques e pode ser arrastada no modo flutuante.
 - **Cores:** cor personalizada do fundo, cor dos ícones e cor do progresso, com seletor nativo do Windows e opção de restaurar as cores padrão.
-- **Iniciar com o Windows**, atualização manual da bateria.
+- **Iniciar com o Windows** e atualização manual da bateria.
 
 As preferências são aplicadas na hora e salvas em `%LOCALAPPDATA%/CantoWidget/settings.json`. As configurações são locais. O modo integrado foi validado na barra horizontal do Windows 10 x64; a barra moderna do Windows 11 não oferece o mesmo encaixe.
 

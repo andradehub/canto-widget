@@ -1,5 +1,6 @@
 #![windows_subsystem = "windows"]
 #![allow(unsafe_op_in_unsafe_fn)]
+mod alpha;
 mod battery;
 mod media;
 mod render;
@@ -44,6 +45,7 @@ const BG_COLOR: u32 = 21;
 const ICON_COLOR: u32 = 22;
 const PROGRESS_COLOR: u32 = 23;
 const RESET_COLORS: u32 = 24;
+const BG_TRANSPARENT: u32 = 25;
 const BAT_REFRESH: u32 = 30;
 const AUTO_SYNC: u32 = 31;
 const STARTUP: u32 = 32;
@@ -143,7 +145,7 @@ unsafe fn create_widget(app: &App) {
         return;
     }
     let hwnd = CreateWindowExW(
-        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_LAYERED,
         wide("CantoRustWidget").as_ptr(),
         wide("Canto").as_ptr(),
         style,
@@ -372,8 +374,11 @@ impl App {
                 drop(s);
                 self.apply();
             }
-            BG_AUTO => {
-                self.settings.borrow_mut().background = None;
+            BG_AUTO | BG_TRANSPARENT => {
+                let mut s = self.settings.borrow_mut();
+                s.background = None;
+                s.transparent = id == BG_TRANSPARENT;
+                drop(s);
                 self.apply();
             }
             BG_COLOR | ICON_COLOR | PROGRESS_COLOR => {
@@ -396,7 +401,10 @@ impl App {
                     let mut s = self.settings.borrow_mut();
                     let c = render::rgb(dialog.rgbResult);
                     match id {
-                        BG_COLOR => s.background = Some(c),
+                        BG_COLOR => {
+                            s.background = Some(c);
+                            s.transparent = false;
+                        }
                         ICON_COLOR => s.icon_color = c,
                         _ => s.progress_color = c,
                     };
@@ -407,6 +415,7 @@ impl App {
             RESET_COLORS => {
                 let mut s = self.settings.borrow_mut();
                 s.background = None;
+                s.transparent = false;
                 s.icon_color = 0x85e4cf;
                 s.progress_color = 0x538e91;
                 drop(s);
@@ -506,8 +515,15 @@ impl App {
         item(
             colors,
             BG_AUTO,
-            "Fundo automático",
-            s.background.is_none(),
+            "Automático · transparente na barra",
+            s.background.is_none() && !s.transparent,
+            false,
+        );
+        item(
+            colors,
+            BG_TRANSPARENT,
+            "Transparente também no modo flutuante",
+            s.background.is_none() && s.transparent,
             false,
         );
         item(colors, BG_COLOR, "Escolher cor do fundo…", false, false);
@@ -686,23 +702,83 @@ unsafe extern "system" fn wndproc(hwnd: HWND, message: u32, w: WPARAM, l: LPARAM
             let mut r: RECT = zeroed();
             GetClientRect(hwnd, &mut r);
             let buffer = CreateCompatibleDC(dc);
-            let bitmap = CreateCompatibleBitmap(dc, r.right.max(1), r.bottom.max(1));
+            let width = r.right.max(1);
+            let height = r.bottom.max(1);
+            let mut info: BITMAPINFO = zeroed();
+            info.bmiHeader.biSize = size_of::<BITMAPINFOHEADER>() as u32;
+            info.bmiHeader.biWidth = width;
+            info.bmiHeader.biHeight = -height;
+            info.bmiHeader.biPlanes = 1;
+            info.bmiHeader.biBitCount = 32;
+            info.bmiHeader.biCompression = BI_RGB;
+            let mut bits = null_mut();
+            let bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &mut bits, null_mut(), 0);
+            if bitmap.is_null() || buffer.is_null() {
+                if !bitmap.is_null() {
+                    DeleteObject(bitmap);
+                }
+                if !buffer.is_null() {
+                    DeleteDC(buffer);
+                }
+                EndPaint(hwnd, &ps);
+                return 0;
+            }
             let old = SelectObject(buffer, bitmap);
             let s = app.settings.borrow().clone();
             let d = app.data.lock().unwrap().clone();
+            let dpi = GetDpiForWindow(hwnd).max(96) as i32;
+            let mut cache = app.cache.borrow_mut();
             render::paint(
                 buffer,
                 r.right,
                 r.bottom,
-                GetDpiForWindow(hwnd).max(96) as i32,
+                dpi,
                 &s,
                 &d.music,
                 &d.battery,
                 app.background.get(),
                 app.hover.get(),
-                &mut app.cache.borrow_mut(),
+                &mut cache,
             );
-            BitBlt(dc, 0, 0, r.right, r.bottom, buffer, 0, 0, SRCCOPY);
+            GdiFlush();
+            let cover = if s.player_visible(d.music.available) && cache.cover.is_some() {
+                let side = (if s.floating { 38 } else { 28 }) * dpi / 96;
+                let left = 10 * dpi / 96;
+                let top = (height - side) / 2;
+                Some([left, top, left + side, top + side])
+            } else {
+                None
+            };
+            drop(cache);
+            alpha::prepare(
+                std::slice::from_raw_parts_mut(bits.cast(), width as usize * height as usize * 4),
+                width,
+                s.background.unwrap_or(app.background.get()),
+                s.is_transparent(),
+                cover,
+            );
+            let size = SIZE {
+                cx: width,
+                cy: height,
+            };
+            let source = POINT { x: 0, y: 0 };
+            let blend = BLENDFUNCTION {
+                BlendOp: AC_SRC_OVER as u8,
+                BlendFlags: 0,
+                SourceConstantAlpha: 255,
+                AlphaFormat: AC_SRC_ALPHA as u8,
+            };
+            UpdateLayeredWindow(
+                hwnd,
+                null_mut(),
+                null(),
+                &size,
+                buffer,
+                &source,
+                0,
+                &blend,
+                ULW_ALPHA,
+            );
             SelectObject(buffer, old);
             DeleteObject(bitmap);
             DeleteDC(buffer);

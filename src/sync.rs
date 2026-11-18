@@ -36,6 +36,9 @@ pub fn allowed(path: &str) -> bool {
     matches!(
         p.as_str(),
         "Cargo.toml"
+            | "build.rs"
+            | "assets/app.manifest"
+            | "assets/app.rc"
             | "Cargo.lock"
             | "README.md"
             | "LICENSE"

@@ -36,7 +36,7 @@ function Invoke-Git([string[]]$Arguments) {
 }
 function Test-SourcePath([string]$path) {
     if ($path -match '(^|/)(bin|obj|target|publish|\.git|node_modules|work|outputs)/' -or $path -match '(^|/)(\.env($|\.)|credentials|secrets)' -or $path -match '\.(pem|key|pfx|p12|log|exe|dll|zip)$') { return $false }
-    return $path -match '^(src/.*\.rs|scripts/[^/]+\.ps1|tests/.*\.(rs|ps1)|Cargo\.(toml|lock)|README\.md|LICENSE|THIRD_PARTY_NOTICES\.md|\.gitignore|\.gitattributes)$'
+    return $path -match '^(src/.*\.rs|scripts/[^/]+\.ps1|tests/.*\.(rs|ps1)|Cargo\.(toml|lock)|build\.rs|assets/app\.(manifest|rc)|README\.md|LICENSE|THIRD_PARTY_NOTICES\.md|\.gitignore|\.gitattributes)$'
 }
 function Get-ContentHash([string]$path) {
     $algorithm = [Security.Cryptography.SHA256]::Create()

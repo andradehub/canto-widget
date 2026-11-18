@@ -13,10 +13,14 @@ A seta do widget e o botão direito abrem as opções:
 - **Ocultar player quando não houver mídia:** mostra só a bateria quando o Windows não tem uma sessão de mídia; o player reaparece quando uma sessão fica disponível. Uma faixa pausada continua disponível para dar play.
 - **Posição → Integrado à barra de tarefas:** encaixa o widget antes da área do relógio, com espaço reservado entre os botões dos outros aplicativos.
 - **Posição → Flutuante:** solta o widget; arraste a área da música ou outra área sem botão para reposicionar.
-- **Cores:** fundo automático, cor personalizada do fundo, cor dos ícones e cor do progresso, com seletor nativo do Windows e opção de restaurar as cores padrão.
+- **Cores → Automático:** fundo transparente na barra de tarefas; no modo flutuante, mantém o fundo azul original.
+- **Cores → Transparente também no modo flutuante:** remove o fundo nos dois modos. A área transparente continua recebendo cliques e pode ser arrastada no modo flutuante.
+- **Cores:** cor personalizada do fundo, cor dos ícones e cor do progresso, com seletor nativo do Windows e opção de restaurar as cores padrão.
 - **Iniciar com o Windows**, atualização manual da bateria e pausa da sincronização do código.
 
 As preferências são aplicadas na hora e salvas em `%LOCALAPPDATA%/CantoWidget/settings.json`. São locais, sem publicação no GitHub. O modo integrado foi validado na barra horizontal do Windows 10 x64; a barra moderna do Windows 11 não oferece o mesmo encaixe.
+
+O fundo automático usa composição nativa por pixel ([UpdateLayeredWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatelayeredwindow)), revelando o fundo real da barra, inclusive textura e variações de cor. Uma opacidade de 1/255 preserva os cliques nas áreas vazias. Ícones, capa e linha de progresso permanecem visíveis. Escolher uma cor de fundo aplica um preenchimento sólido.
 
 ## Consumo
 
@@ -67,7 +71,7 @@ cargo test --release --locked
 ./scripts/Build.ps1
 ```
 
-O caminho habitual no Windows é a toolchain MSVC com as ferramentas C++/SDK indicadas no [guia oficial de Rust para Windows](https://learn.microsoft.com/en-us/windows/dev-environment/rust/setup). O código também foi compilado e validado com a toolchain GNU/LLD.
+O caminho habitual no Windows é a toolchain MSVC com as ferramentas C++/SDK indicadas no [guia oficial de Rust para Windows](https://learn.microsoft.com/en-us/windows/dev-environment/rust/setup). O código também foi compilado e validado com a toolchain GNU/LLD; nessa toolchain, `windres` precisa estar no PATH ou ser indicado pela variável `WINDRES`. O manifesto de compatibilidade é incorporado ao executável durante a compilação.
 
 Os testes Rust cobrem o pacote real do AJ139 Pro, checksum, limites, modos de exibição, migração/persistência de preferências, cores e integração Git com repositórios locais descartáveis. O teste Git verifica que credenciais ficam fora do commit e que o histórico é preservado. `tests/Sync.Tests.ps1` verifica o assistente de sincronização manual em PowerShell.
 

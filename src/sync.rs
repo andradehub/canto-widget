@@ -17,7 +17,19 @@ pub fn repository() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
     exe.parent()?
         .ancestors()
-        .find(|p| p.join("Cargo.toml").is_file() && p.join("scripts").is_dir())
+        .find(|p| {
+            p.join("Cargo.toml").is_file()
+                && p.join(".git").exists()
+                && git(p, &["config", "--local", "--bool", "canto.creator"])
+                    .is_ok_and(|v| v == "true")
+                && git(p, &["remote", "get-url", "origin"]).is_ok_and(|v| {
+                    matches!(
+                        v.as_str(),
+                        "https://github.com/andradehub/canto-widget.git"
+                            | "git@github.com:andradehub/canto-widget.git"
+                    )
+                })
+        })
         .map(Path::to_path_buf)
 }
 pub fn allowed(path: &str) -> bool {
@@ -115,12 +127,14 @@ fn snapshot(repo: &Path) -> Snapshot {
                 continue;
             }
             if p.is_dir() {
-                if matches!(e.file_name().to_str(), Some("src" | "scripts" | "tests"))
-                    || dir != repo
-                        && !matches!(
-                            e.file_name().to_str(),
-                            Some("bin" | "obj" | "target" | ".git")
-                        )
+                if matches!(
+                    e.file_name().to_str(),
+                    Some("src" | "scripts" | "tests" | "assets")
+                ) || dir != repo
+                    && !matches!(
+                        e.file_name().to_str(),
+                        Some("bin" | "obj" | "target" | ".git")
+                    )
                 {
                     visit(repo, &p, out);
                 }
@@ -167,7 +181,8 @@ pub fn start(
         .stack_size(256 * 1024)
         .spawn(move || {
             let Some(repo) = repo else {
-                *status.lock().unwrap() = "Abra o app na pasta do projeto para sincronizar".into();
+                *status.lock().unwrap() =
+                    "Ferramentas do criador · checkout local não habilitado".into();
                 return;
             };
             stop_old_watcher(&repo);

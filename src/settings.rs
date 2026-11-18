@@ -4,6 +4,7 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
+    #[cfg(feature = "creator-tools")]
     #[serde(rename = "AutoSync", alias = "auto_sync")]
     pub auto_sync: bool,
     pub floating: bool,
@@ -22,6 +23,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            #[cfg(feature = "creator-tools")]
             auto_sync: true,
             floating: false,
             show_player: true,
@@ -111,7 +113,10 @@ mod tests {
     fn preferences_round_trip_and_migrate() {
         let s: Settings =
             serde_json::from_str(r#"{"Left":1476,"Top":10,"AutoSync":false}"#).unwrap();
+        #[cfg(feature = "creator-tools")]
         assert!(!s.auto_sync);
+        #[cfg(not(feature = "creator-tools"))]
+        assert!(!serde_json::to_string(&s).unwrap().contains("AutoSync"));
         assert_eq!(s.left, Some(1476));
         assert!(s.show_player);
         let t: Settings = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();

@@ -6,6 +6,7 @@ mod battery;
 mod media;
 mod render;
 mod settings;
+#[cfg(feature = "creator-tools")]
 mod sync;
 use settings::Settings;
 use std::{
@@ -49,10 +50,10 @@ const RESET_COLORS: u32 = 24;
 const BG_TRANSPARENT: u32 = 25;
 const FLOAT_BLUR: u32 = 26;
 const BAT_REFRESH: u32 = 30;
+#[cfg(feature = "creator-tools")]
 const AUTO_SYNC: u32 = 31;
 const STARTUP: u32 = 32;
 const REPOSITORY: u32 = 33;
-const CONNECT: u32 = 34;
 const EXIT: u32 = 99;
 #[derive(Clone)]
 struct Data {
@@ -89,8 +90,10 @@ struct App {
     hover: Cell<u32>,
     background: Cell<u32>,
     running: Arc<AtomicBool>,
+    #[cfg(feature = "creator-tools")]
     sync_enabled: Arc<AtomicBool>,
     media_enabled: Arc<AtomicBool>,
+    #[cfg(feature = "creator-tools")]
     sync_status: Arc<Mutex<String>>,
     media_tx: mpsc::Sender<u32>,
     battery_tx: mpsc::Sender<()>,
@@ -445,6 +448,7 @@ impl App {
             BAT_REFRESH => {
                 let _ = self.battery_tx.send(());
             }
+            #[cfg(feature = "creator-tools")]
             AUTO_SYNC => {
                 let mut s = self.settings.borrow_mut();
                 s.auto_sync = !s.auto_sync;
@@ -453,23 +457,6 @@ impl App {
             }
             STARTUP => toggle_startup(),
             REPOSITORY => open("https://github.com/andradehub/canto-widget"),
-            CONNECT => {
-                if let Some(repo) = sync::repository() {
-                    let script = repo.join("scripts/Connect-GitHub.ps1");
-                    let args = format!(
-                        "-NoProfile -ExecutionPolicy Bypass -File \"{}\"",
-                        script.display()
-                    );
-                    ShellExecuteW(
-                        self.controller.get(),
-                        wide("open").as_ptr(),
-                        wide("powershell.exe").as_ptr(),
-                        wide(&args).as_ptr(),
-                        null(),
-                        SW_SHOWNORMAL,
-                    );
-                }
-            }
             EXIT => {
                 self.quitting.set(true);
                 self.running.store(false, Ordering::Relaxed);
@@ -579,16 +566,18 @@ impl App {
             startup_enabled(),
             false,
         );
-        item(
-            menu,
-            AUTO_SYNC,
-            "Enviar alterações do código ao GitHub",
-            s.auto_sync,
-            false,
-        );
-        item(menu, 0, &self.sync_status.lock().unwrap(), false, true);
+        #[cfg(feature = "creator-tools")]
+        {
+            item(
+                menu,
+                AUTO_SYNC,
+                "Enviar alterações do código ao GitHub · criador",
+                s.auto_sync,
+                false,
+            );
+            item(menu, 0, &self.sync_status.lock().unwrap(), false, true);
+        }
         item(menu, REPOSITORY, "Abrir projeto no GitHub", false, false);
-        item(menu, CONNECT, "Conectar e publicar no GitHub", false, false);
         separator(menu);
         item(menu, EXIT, "Sair", false, false);
         let hwnd = self.widget.get();
@@ -1058,6 +1047,18 @@ fn main() {
         }
     }));
     let args = std::env::args().collect::<Vec<_>>();
+    if let Some(i) = args.iter().position(|a| a == "--build-info") {
+        if let Some(path) = args.get(i + 1) {
+            let info = serde_json::json!({"version":env!("CARGO_PKG_VERSION"),"creator_tools":cfg!(feature = "creator-tools")});
+            let _ = std::fs::write(path, serde_json::to_vec_pretty(&info).unwrap());
+        }
+        return;
+    }
+    #[cfg(not(feature = "creator-tools"))]
+    if args.iter().any(|a| a == "--sync-once") {
+        std::process::exit(2);
+    }
+    #[cfg(feature = "creator-tools")]
     if let Some(i) = args.iter().position(|a| a == "--sync-once") {
         if let Some(repo) = args.get(i + 1) {
             if let Err(e) = sync::run_once(std::path::Path::new(repo)) {
@@ -1086,8 +1087,10 @@ fn main() {
         }
         let settings = Settings::load();
         let running = Arc::new(AtomicBool::new(true));
+        #[cfg(feature = "creator-tools")]
         let sync_enabled = Arc::new(AtomicBool::new(settings.auto_sync));
         let media_enabled = Arc::new(AtomicBool::new(settings.show_player));
+        #[cfg(feature = "creator-tools")]
         let status = Arc::new(Mutex::new("Verificando conexão GitHub…".into()));
         let data = Arc::new(Mutex::new(Data::default()));
         let (mt, mr) = mpsc::channel();
@@ -1102,8 +1105,10 @@ fn main() {
             hover: Cell::new(0),
             background: Cell::new(0x181818),
             running: running.clone(),
+            #[cfg(feature = "creator-tools")]
             sync_enabled: sync_enabled.clone(),
             media_enabled: media_enabled.clone(),
+            #[cfg(feature = "creator-tools")]
             sync_status: status.clone(),
             media_tx: mt,
             battery_tx: bt,
@@ -1144,6 +1149,7 @@ fn main() {
         notify(controller, NIM_ADD);
         SetTimer(controller, 1, 2000, None);
         workers(controller, data, running.clone(), media_enabled, mr, br);
+        #[cfg(feature = "creator-tools")]
         sync::start(sync::repository(), sync_enabled, running, status);
         let mut message: MSG = zeroed();
         while GetMessageW(&mut message, null_mut(), 0, 0) > 0 {

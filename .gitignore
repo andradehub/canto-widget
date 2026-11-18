@@ -16,3 +16,4 @@ outputs/
 *.png
 *.json.tmp
 /target/
+/creator/

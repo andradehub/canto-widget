@@ -154,6 +154,12 @@ unsafe fn fill(dc: HDC, r: RECT, c: u32) {
     }
 }
 unsafe fn text(dc: HDC, s: &str, mut r: RECT, font: HFONT, c: u32) {
+    label(dc, s, &mut r, font, c, DT_LEFT);
+}
+unsafe fn centered(dc: HDC, s: &str, mut r: RECT, font: HFONT, c: u32) {
+    label(dc, s, &mut r, font, c, DT_CENTER);
+}
+unsafe fn label(dc: HDC, s: &str, r: &mut RECT, font: HFONT, c: u32, alignment: u32) {
     unsafe {
         let previous = SelectObject(dc, font);
         SetTextColor(dc, color(c));
@@ -163,8 +169,8 @@ unsafe fn text(dc: HDC, s: &str, mut r: RECT, font: HFONT, c: u32) {
             dc,
             w.as_ptr(),
             w.len() as i32 - 1,
-            &mut r,
-            DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX,
+            r,
+            DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX | alignment,
         );
         SelectObject(dc, previous);
     }
@@ -241,7 +247,7 @@ pub unsafe fn paint(
                 );
             } else {
                 fill(dc, r(10, top, side, side), blend(bg, foreground, 16));
-                text(dc, "♫", r(16, top, side - 6, side), cache.font, icon);
+                centered(dc, "♫", r(10, top, side, side), cache.font, icon);
             }
             let title_x = if settings.floating { 58 } else { 50 };
             text(
@@ -375,20 +381,23 @@ pub unsafe fn paint(
         SelectObject(dc, old_brush);
         let label = battery
             .percent
-            .map(|v| format!("{v}%{}", if battery.charging { " ⚡" } else { "" }))
+            .map(|v| format!("{v}%"))
             .unwrap_or_else(|| "—".into());
         let battery_color = if battery.percent.is_some_and(|p| p <= 20) || battery.stale {
             0xffb67b
         } else {
             foreground
         };
-        text(
+        centered(
             dc,
             &label,
-            r(w - 82, center + 2, 48, 16),
+            r(mouse_x - 24, center + 2, 48, 16),
             cache.small,
             battery_color,
         );
+        if battery.charging {
+            centered(dc, "⚡", r(mouse_x + 19, center + 2, 12, 16), cache.small, icon);
+        }
         if hover == 4 {
             fill(
                 dc,

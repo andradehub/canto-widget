@@ -217,7 +217,8 @@ impl App {
                 h,
                 SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_FRAMECHANGED,
             );
-            let region = CreateRoundRectRgn(0, 0, w + 1, h + 1, 14, 14);
+            let curve = 28 * dpi as i32 / 96;
+            let region = CreateRoundRectRgn(0, 0, w + 1, h + 1, curve, curve);
             if SetWindowRgn(hwnd, region, 1) == 0 {
                 DeleteObject(region);
             }
@@ -790,6 +791,14 @@ unsafe extern "system" fn wndproc(hwnd: HWND, message: u32, w: WPARAM, l: LPARAM
                 },
                 cover,
             );
+            if s.floating {
+                let bg = s.background.unwrap_or(app.background.get());
+                alpha::frame(
+                    std::slice::from_raw_parts_mut(bits.cast(), width as usize * height as usize * 4),
+                    width, height, 14. * dpi as f32 / 96.,
+                    if render::light(bg) { 0x202020 } else { 0xecf5fa },
+                );
+            }
             let size = SIZE {
                 cx: width,
                 cy: height,

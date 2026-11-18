@@ -13,14 +13,17 @@ A seta do widget e o botão direito abrem as opções:
 - **Ocultar player quando não houver mídia:** mostra só a bateria quando o Windows não tem uma sessão de mídia; o player reaparece quando uma sessão fica disponível. Uma faixa pausada continua disponível para dar play.
 - **Posição → Integrado à barra de tarefas:** encaixa o widget antes da área do relógio, com espaço reservado entre os botões dos outros aplicativos.
 - **Posição → Flutuante:** solta o widget; arraste a área da música ou outra área sem botão para reposicionar.
-- **Cores → Automático:** fundo transparente na barra de tarefas; no modo flutuante, mantém o fundo azul original.
-- **Cores → Transparente também no modo flutuante:** remove o fundo nos dois modos. A área transparente continua recebendo cliques e pode ser arrastada no modo flutuante.
+- **Cores → Automático:** fundo transparente na barra de tarefas; no modo flutuante, usa vidro com blur e tonalidade discreta.
+- **Cores → Desfoque no modo flutuante:** liga ou desliga o blur. A cor escolhida para o fundo também pode ser usada como tonalidade do vidro.
+- **Cores → Fundo totalmente transparente:** remove o fundo nos dois modos e desliga o blur. A área transparente continua recebendo cliques e pode ser arrastada no modo flutuante.
 - **Cores:** cor personalizada do fundo, cor dos ícones e cor do progresso, com seletor nativo do Windows e opção de restaurar as cores padrão.
 - **Iniciar com o Windows**, atualização manual da bateria e pausa da sincronização do código.
 
 As preferências são aplicadas na hora e salvas em `%LOCALAPPDATA%/CantoWidget/settings.json`. São locais, sem publicação no GitHub. O modo integrado foi validado na barra horizontal do Windows 10 x64; a barra moderna do Windows 11 não oferece o mesmo encaixe.
 
-O fundo automático usa composição nativa por pixel ([UpdateLayeredWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatelayeredwindow)), revelando o fundo real da barra, inclusive textura e variações de cor. Uma opacidade de 1/255 preserva os cliques nas áreas vazias. Ícones, capa e linha de progresso permanecem visíveis. Escolher uma cor de fundo aplica um preenchimento sólido.
+O fundo automático usa composição nativa por pixel ([UpdateLayeredWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatelayeredwindow)), revelando o fundo real da barra, inclusive textura e variações de cor. Uma opacidade de 1/255 preserva os cliques nas áreas vazias. Ícones, capa e linha de progresso permanecem visíveis. Escolher uma cor de fundo aplica um preenchimento sólido na barra e uma tonalidade no vidro flutuante quando o blur está ligado.
+
+O blur é composto pelo Windows, sem capturas de tela ou filtros contínuos no aplicativo. Foi validado no Windows 10 22H2. A política de accent usa [SetWindowCompositionAttribute](https://learn.microsoft.com/en-us/windows/win32/dwm/setwindowcompositionattribute), resolvido dinamicamente; seus valores de accent não são um contrato público estável. Se a chamada não estiver disponível ou for recusada, o flutuante conserva um fundo sólido legível.
 
 ## Consumo
 

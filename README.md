@@ -17,9 +17,9 @@ A seta do widget e o botão direito abrem as opções:
 - **Cores → Desfoque no modo flutuante:** liga ou desliga o blur. A cor escolhida para o fundo também pode ser usada como tonalidade do vidro.
 - **Cores → Fundo totalmente transparente:** remove o fundo nos dois modos e desliga o blur. A área transparente continua recebendo cliques e pode ser arrastada no modo flutuante.
 - **Cores:** cor personalizada do fundo, cor dos ícones e cor do progresso, com seletor nativo do Windows e opção de restaurar as cores padrão.
-- **Iniciar com o Windows**, atualização manual da bateria e pausa da sincronização do código.
+- **Iniciar com o Windows**, atualização manual da bateria.
 
-As preferências são aplicadas na hora e salvas em `%LOCALAPPDATA%/CantoWidget/settings.json`. São locais, sem publicação no GitHub. O modo integrado foi validado na barra horizontal do Windows 10 x64; a barra moderna do Windows 11 não oferece o mesmo encaixe.
+As preferências são aplicadas na hora e salvas em `%LOCALAPPDATA%/CantoWidget/settings.json`. As configurações são locais. O modo integrado foi validado na barra horizontal do Windows 10 x64; a barra moderna do Windows 11 não oferece o mesmo encaixe.
 
 O fundo automático usa composição nativa por pixel ([UpdateLayeredWindow](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-updatelayeredwindow)), revelando o fundo real da barra, inclusive textura e variações de cor. Uma opacidade de 1/255 preserva os cliques nas áreas vazias. Ícones, capa e linha de progresso permanecem visíveis. Escolher uma cor de fundo aplica um preenchimento sólido na barra e uma tonalidade no vidro flutuante quando o blur está ligado.
 
@@ -29,9 +29,9 @@ O blur é composto pelo Windows, sem capturas de tela ou filtros contínuos no a
 
 O aplicativo foi reescrito em Rust, com Win32/GDI para desenhar texto, capa e ícones diretamente. Não usa WPF, renderização contínua de bitmaps, WebView, Electron, Tauri ou processo do PowerShell residente.
 
-A capa só é decodificada quando muda. O desenho nativo é leve e reaproveita fontes e miniaturas em cache. No modo somente bateria, a consulta de mídia é suspensa e as referências do player/capa são liberadas. O mouse é consultado a cada 30 segundos. O monitor de código verifica metadados dos arquivos a cada 5 segundos e só executa o Git quando precisa enviar alterações.
+A capa só é decodificada quando muda. O desenho nativo é leve e reaproveita fontes e miniaturas em cache. No modo somente bateria, a consulta de mídia é suspensa e as referências do player/capa são liberadas. O mouse é consultado a cada 30 segundos.
 
-Na máquina de desenvolvimento, a versão anterior usava cerca de 147 MiB de memória residente no aplicativo e 67,5 MiB no auxiliar de sincronização. A versão Rust foi observada em aproximadamente 16–30 MiB, com a sincronização no próprio processo. São amostras de Working Set, que incluem páginas compartilhadas; o consumo varia com player, capa e interação. Não foi aplicada redução artificial do Working Set.
+A versão Rust foi observada em aproximadamente 15–30 MiB de memória residente. São amostras de Working Set, que incluem páginas compartilhadas; o consumo varia com player, capa e interação. Não foi aplicada redução artificial do Working Set.
 
 O executável Rust tem aproximadamente 0,8 MiB; a distribuição não inclui o runtime .NET de cerca de 198 MB do executável anterior.
 
@@ -61,21 +61,7 @@ Diagnóstico local, sem abrir outra instância da interface:
 ./publish/CantoWidget.exe --diagnostics "$PWD/diagnostics.json"
 ```
 
-O diagnóstico inclui a leitura selecionada e o resultado dos caminhos padrão Windows/HID, para ajudar a verificar outros modelos. Contém identificadores locais do dispositivo e não é enviado ao GitHub pela sincronização automática.
-
-## Backup automático do código no GitHub (opcional)
-
-Destino deste projeto: [andradehub/canto-widget](https://github.com/andradehub/canto-widget), público.
-
-Com o aplicativo aberto e autenticado, após 20 segundos sem novos salvamentos ele faz commit e push do código na branch atual. Em falha, mantém os commits locais e tenta novamente. A sincronização ocorre em uma thread Rust; o PowerShell só é usado pelo assistente de conexão quando você escolhe essa opção.
-
-Isso serve para guardar o histórico das alterações no projeto e manter uma cópia do código no repositório. Por exemplo: editar e salvar `src/render.rs` gera um commit após o intervalo de espera e envia essa revisão ao GitHub. Alterar a cor, a posição ou o modo de exibição muda apenas as preferências locais. O widget funciona sem esse backup; quem só quer usar player e bateria pode desativar **Enviar alterações do código ao GitHub** no menu. Recompilar e instalar uma nova versão são etapas separadas.
-
-O monitor envia os arquivos de código Rust, Cargo.toml/Cargo.lock, manifesto, scripts, testes e documentação permitidos explicitamente. Não envia músicas, capas, percentuais de bateria, binários, `.env`, configurações pessoais, diagnósticos ou credenciais. Arquivos fora da lista já preparados no índice bloqueiam o envio para revisão. Não executa force push, reset ou merge automático. Alterações remotas divergentes precisam ser integradas manualmente.
-
-Mantenha `publish/` dentro da pasta do projeto para sincronizar o código. Um executável copiado isoladamente funciona como widget, mas não encontra o repositório. Outros projetos precisam de sua própria configuração.
-
-Para conectar um checkout seu, use **Conectar e publicar no GitHub** no menu ou `./scripts/Connect-GitHub.ps1`. O assistente usa a conta ativa do GitHub CLI, cria o repositório público se necessário e configura o acesso. Um `origin` já existente é preservado e precisa corresponder ao destino. Nenhum token é gravado no código-fonte.
+O diagnóstico inclui a leitura selecionada e o resultado dos caminhos padrão Windows/HID, para ajudar a verificar outros modelos. É um arquivo local que pode conter identificadores do dispositivo.
 
 ## Compilar e testar
 
@@ -88,6 +74,6 @@ cargo test --release --locked
 
 O caminho habitual no Windows é a toolchain MSVC com as ferramentas C++/SDK indicadas no [guia oficial de Rust para Windows](https://learn.microsoft.com/en-us/windows/dev-environment/rust/setup). O código também foi compilado e validado com a toolchain GNU/LLD; nessa toolchain, `windres` precisa estar no PATH ou ser indicado pela variável `WINDRES`. O manifesto de compatibilidade é incorporado ao executável durante a compilação.
 
-Os testes Rust cobrem o pacote real do AJ139 Pro, checksum, limites, modos de exibição, migração/persistência de preferências, cores e integração Git com repositórios locais descartáveis. O teste Git verifica que credenciais ficam fora do commit e que o histórico é preservado. `tests/Sync.Tests.ps1` verifica o assistente de sincronização manual em PowerShell.
+Os testes Rust cobrem o pacote real do AJ139 Pro, checksum, limites e escalas de bateria, modos de exibição, migração/persistência de preferências, cores e composição da interface.
 
-A versão anterior em C#/WPF permanece no histórico e na release 1.0. A versão 2 é executada em Rust, incluindo interface, mídia, bateria, preferências e sincronização.
+A versão anterior em C#/WPF permanece no histórico e na release 1.0. A versão 2 é executada em Rust, incluindo interface, mídia, bateria e preferências.

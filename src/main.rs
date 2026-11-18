@@ -1069,7 +1069,7 @@ fn main() {
     }
     if let Some(i) = args.iter().position(|a| a == "--diagnostics") {
         let mut media = media::Media::new();
-        let report = serde_json::json!({"battery":battery::read(),"music":media.refresh(),"implementation":"Rust"});
+        let report = serde_json::json!({"battery":battery::read(),"standard_battery":battery::read_standard(),"music":media.refresh(),"implementation":"Rust"});
         let path = args
             .get(i + 1)
             .map(std::path::PathBuf::from)

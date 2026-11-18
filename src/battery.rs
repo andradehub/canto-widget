@@ -176,6 +176,9 @@ pub fn read() -> Battery {
         }
     }
 }
+pub fn read_standard() -> Battery {
+    unsafe { standard::read(&paths()) }
+}
 fn read_ajazz(candidates: &[Vec<u16>]) -> Battery {
     unsafe {
         let mut detected = Battery::default();

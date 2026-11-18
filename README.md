@@ -61,7 +61,7 @@ Diagnóstico local, sem abrir outra instância da interface:
 ./publish/CantoWidget.exe --diagnostics "$PWD/diagnostics.json"
 ```
 
-O diagnóstico não é enviado ao GitHub pela sincronização automática.
+O diagnóstico inclui a leitura selecionada e o resultado dos caminhos padrão Windows/HID, para ajudar a verificar outros modelos. Contém identificadores locais do dispositivo e não é enviado ao GitHub pela sincronização automática.
 
 ## Backup automático do código no GitHub (opcional)
 

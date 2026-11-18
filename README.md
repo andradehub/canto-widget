@@ -4,7 +4,11 @@ Música e bateria de mouses compatíveis na barra de tarefas ou em um widget flu
 
 ## Usar
 
-Extraia o pacote e abra `publish/CantoWidget.exe`. Não precisa instalar .NET, Rust, navegador embutido ou outro runtime para executar.
+[**Baixar CantoWidget.exe para Windows**](https://github.com/andradehub/canto-widget/releases/latest/download/CantoWidget.exe)
+
+Baixe o `.exe` e dê dois cliques para abrir. É portátil: não precisa de instalação, .NET, Rust ou navegador embutido. Não é necessário baixar o código-fonte nem compilar.
+
+O [pacote ZIP](https://github.com/andradehub/canto-widget/releases/latest/download/CantoWidget-Windows.zip) também está disponível, com documentação e licenças; nele, abra `publish/CantoWidget.exe`.
 
 A seta do widget e o botão direito abrem as opções:
 

@@ -33,12 +33,18 @@ pub fn frame(pixels: &mut [u8], width: i32, height: i32, radius: f32, stroke: u3
     for (index, pixel) in pixels.chunks_exact_mut(4).enumerate() {
         let x = (index as i32 % width) as f32 + 0.5;
         let y = (index as i32 / width) as f32 + 0.5;
-        if x > radius + 2. && x < width as f32 - radius - 2. && y > 2. && y < height as f32 - 2. { continue; }
+        if x > radius + 2. && x < width as f32 - radius - 2. && y > 2. && y < height as f32 - 2. {
+            continue;
+        }
         let qx = (x - half_w).abs() - (half_w - radius);
         let qy = (y - half_h).abs() - (half_h - radius);
-        let distance = (qx.max(0.).powi(2) + qy.max(0.).powi(2)).sqrt() + qx.max(qy).min(0.) - radius;
+        let distance =
+            (qx.max(0.).powi(2) + qy.max(0.).powi(2)).sqrt() + qx.max(qy).min(0.) - radius;
         let coverage = (0.5 - distance).clamp(0., 1.);
-        if coverage == 0. { pixel.fill(0); continue; }
+        if coverage == 0. {
+            pixel.fill(0);
+            continue;
+        }
         let rim = (distance + 1.5).clamp(0., 1.) * 0.28;
         for (i, channel) in pixel[..3].iter_mut().enumerate() {
             let c = ((stroke >> (i * 8)) & 255) as f32;
@@ -74,7 +80,10 @@ mod tests {
         let mut pixels = vec![100; 40 * 32 * 4];
         frame(&mut pixels, 40, 32, 12., 0xffffff);
         assert_eq!(&pixels[..4], &[0, 0, 0, 0]);
-        assert_eq!(&pixels[(16 * 40 + 20) * 4..(16 * 40 + 20) * 4 + 4], &[100; 4]);
+        assert_eq!(
+            &pixels[(16 * 40 + 20) * 4..(16 * 40 + 20) * 4 + 4],
+            &[100; 4]
+        );
         assert!(pixels[(20 * 4) + 3] > 100);
     }
 }

@@ -496,10 +496,14 @@ impl App {
         item(
             menu,
             0,
-            &format!("AJAZZ AJ139 Pro · {battery}"),
+            &format!("Bateria do mouse · {battery}"),
             false,
             true,
         );
+        if !data.battery.device.is_empty() {
+            item(menu, 0, &data.battery.device, false, true);
+        }
+        item(menu, 0, &data.battery.message, false, true);
         if data.music.available {
             item(menu, 0, &data.music.title, false, true);
         }
@@ -794,9 +798,18 @@ unsafe extern "system" fn wndproc(hwnd: HWND, message: u32, w: WPARAM, l: LPARAM
             if s.floating {
                 let bg = s.background.unwrap_or(app.background.get());
                 alpha::frame(
-                    std::slice::from_raw_parts_mut(bits.cast(), width as usize * height as usize * 4),
-                    width, height, 14. * dpi as f32 / 96.,
-                    if render::light(bg) { 0x202020 } else { 0xecf5fa },
+                    std::slice::from_raw_parts_mut(
+                        bits.cast(),
+                        width as usize * height as usize * 4,
+                    ),
+                    width,
+                    height,
+                    14. * dpi as f32 / 96.,
+                    if render::light(bg) {
+                        0x202020
+                    } else {
+                        0xecf5fa
+                    },
                 );
             }
             let size = SIZE {
@@ -1005,7 +1018,10 @@ fn workers(
                 if battery.percent.is_some() {
                     last = Some((battery.clone(), Instant::now()));
                 } else if let Some((old, at)) = &last {
-                    if at.elapsed() < Duration::from_secs(180) {
+                    if !battery.device_id.is_empty()
+                        && battery.device_id == old.device_id
+                        && at.elapsed() < Duration::from_secs(180)
+                    {
                         battery = old.clone();
                         battery.stale = true;
                         battery.message = "Última leitura · mouse sem resposta".into();

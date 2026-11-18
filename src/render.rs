@@ -396,7 +396,13 @@ pub unsafe fn paint(
             battery_color,
         );
         if battery.charging {
-            centered(dc, "⚡", r(mouse_x + 19, center + 2, 12, 16), cache.small, icon);
+            centered(
+                dc,
+                "⚡",
+                r(mouse_x + 19, center + 2, 12, 16),
+                cache.small,
+                icon,
+            );
         }
         if hover == 4 {
             fill(

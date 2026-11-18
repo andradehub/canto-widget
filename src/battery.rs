@@ -1,4 +1,5 @@
 use serde::Serialize;
+mod standard;
 use std::{
     mem::size_of,
     ptr::{null, null_mut},
@@ -17,6 +18,9 @@ pub struct Battery {
     pub charging: bool,
     pub stale: bool,
     pub message: String,
+    pub device: String,
+    pub device_id: String,
+    pub source: String,
 }
 #[derive(Debug, PartialEq)]
 pub struct Reading {
@@ -160,7 +164,21 @@ pub fn read() -> Battery {
                 .to_lowercase()
                 .contains("pid_5d2e")
         });
-        let mut found = false;
+        let known = read_ajazz(&candidates);
+        if known.percent.is_some() {
+            return known;
+        }
+        let generic = standard::read(&candidates);
+        if generic.percent.is_some() || known.device_id.is_empty() {
+            generic
+        } else {
+            known
+        }
+    }
+}
+fn read_ajazz(candidates: &[Vec<u16>]) -> Battery {
+    unsafe {
+        let mut detected = Battery::default();
         for path in candidates {
             let name = String::from_utf16_lossy(&path).to_lowercase();
             let wireless = name.contains("vid_249a&pid_5c2f") || name.contains("vid_248a&pid_5c2f");
@@ -174,7 +192,8 @@ pub fn read() -> Battery {
             if (!wireless && !wired) || !name.contains("mi_02") {
                 continue;
             }
-            found = true;
+            detected.device_id = String::from_utf16_lossy(&path[..path.len() - 1]);
+            detected.device = "Mouse USB".into();
             let handle = CreateFileW(
                 path.as_ptr(),
                 GENERIC_READ | GENERIC_WRITE,
@@ -187,6 +206,7 @@ pub fn read() -> Battery {
             if handle == INVALID_HANDLE_VALUE {
                 continue;
             }
+            detected.device = standard::product(handle, "Mouse USB");
             let mut ppd = 0;
             let mut caps: HIDP_CAPS = std::mem::zeroed();
             let valid = HidD_GetPreparsedData(handle, &mut ppd);
@@ -219,6 +239,9 @@ pub fn read() -> Battery {
                                     "Conectado · receptor USB"
                                 }
                                 .into(),
+                                device: detected.device.clone(),
+                                device_id: detected.device_id.clone(),
+                                source: "AJAZZ/CompX".into(),
                             });
                             if r.info {
                                 break;
@@ -233,15 +256,13 @@ pub fn read() -> Battery {
             }
             CloseHandle(handle);
         }
-        Battery {
-            message: if found {
-                "Sem leitura · mova o mouse para acordá-lo"
-            } else {
-                "Receptor não encontrado"
-            }
-            .into(),
-            ..Default::default()
+        detected.message = if !detected.device_id.is_empty() {
+            "Sem leitura · mova o mouse para acordá-lo"
+        } else {
+            "Nenhum mouse com bateria disponível"
         }
+        .into();
+        detected
     }
 }
 #[cfg(test)]

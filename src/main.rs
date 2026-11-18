@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 #![allow(unsafe_op_in_unsafe_fn)]
 mod alpha;
+mod backdrop;
 mod battery;
 mod media;
 mod render;
@@ -46,6 +47,7 @@ const ICON_COLOR: u32 = 22;
 const PROGRESS_COLOR: u32 = 23;
 const RESET_COLORS: u32 = 24;
 const BG_TRANSPARENT: u32 = 25;
+const FLOAT_BLUR: u32 = 26;
 const BAT_REFRESH: u32 = 30;
 const AUTO_SYNC: u32 = 31;
 const STARTUP: u32 = 32;
@@ -95,6 +97,7 @@ struct App {
     taskbar_message: u32,
     quitting: Cell<bool>,
     dragging: Cell<bool>,
+    blurred: Cell<bool>,
 }
 thread_local! {static APP:Cell<*const App>=const{Cell::new(null())};}
 unsafe fn relative(hwnd: HWND) -> RECT {
@@ -159,6 +162,8 @@ unsafe fn create_widget(app: &App) {
         null(),
     );
     app.widget.set(hwnd);
+    app.blurred
+        .set(backdrop::apply(hwnd, app.settings.borrow().is_blurred()));
 }
 impl App {
     unsafe fn layout(&self) {
@@ -216,7 +221,8 @@ impl App {
             if SetWindowRgn(hwnd, region, 1) == 0 {
                 DeleteObject(region);
             }
-            self.background.set(0x072234);
+            self.background
+                .set(if s.is_blurred() { 0x202226 } else { 0x072234 });
         } else {
             let shell = FindWindowW(wide("Shell_TrayWnd").as_ptr(), null());
             if shell.is_null() {
@@ -340,6 +346,9 @@ impl App {
             .store(self.settings.borrow().show_player, Ordering::Relaxed);
         let _ = self.media_tx.send(0);
         self.layout();
+        let blurred = self.settings.borrow().is_blurred();
+        self.blurred
+            .set(backdrop::apply(self.widget.get(), blurred));
         InvalidateRect(self.widget.get(), null(), 0);
     }
     unsafe fn action(&self, id: u32) {
@@ -378,6 +387,16 @@ impl App {
                 let mut s = self.settings.borrow_mut();
                 s.background = None;
                 s.transparent = id == BG_TRANSPARENT;
+                s.floating_blur = id == BG_AUTO;
+                drop(s);
+                self.apply();
+            }
+            FLOAT_BLUR => {
+                let mut s = self.settings.borrow_mut();
+                s.floating_blur = !s.floating_blur;
+                if s.floating_blur {
+                    s.transparent = false;
+                }
                 drop(s);
                 self.apply();
             }
@@ -416,6 +435,7 @@ impl App {
                 let mut s = self.settings.borrow_mut();
                 s.background = None;
                 s.transparent = false;
+                s.floating_blur = true;
                 s.icon_color = 0x85e4cf;
                 s.progress_color = 0x538e91;
                 drop(s);
@@ -522,8 +542,15 @@ impl App {
         item(
             colors,
             BG_TRANSPARENT,
-            "Transparente também no modo flutuante",
+            "Fundo totalmente transparente",
             s.background.is_none() && s.transparent,
+            false,
+        );
+        item(
+            colors,
+            FLOAT_BLUR,
+            "Desfoque no modo flutuante",
+            s.floating_blur && !s.transparent,
             false,
         );
         item(colors, BG_COLOR, "Escolher cor do fundo…", false, false);
@@ -754,7 +781,13 @@ unsafe extern "system" fn wndproc(hwnd: HWND, message: u32, w: WPARAM, l: LPARAM
                 std::slice::from_raw_parts_mut(bits.cast(), width as usize * height as usize * 4),
                 width,
                 s.background.unwrap_or(app.background.get()),
-                s.is_transparent(),
+                if s.is_blurred() && app.blurred.get() {
+                    160
+                } else if s.is_transparent() {
+                    1
+                } else {
+                    255
+                },
                 cover,
             );
             let size = SIZE {
@@ -1052,6 +1085,7 @@ fn main() {
             taskbar_message: RegisterWindowMessageW(wide("TaskbarCreated").as_ptr()),
             quitting: Cell::new(false),
             dragging: Cell::new(false),
+            blurred: Cell::new(false),
         });
         APP.with(|p| p.set(&*app));
         for class in ["CantoRustController", "CantoRustWidget"] {

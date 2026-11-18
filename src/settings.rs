@@ -11,6 +11,7 @@ pub struct Settings {
     pub auto_hide_player: bool,
     pub background: Option<u32>,
     pub transparent: bool,
+    pub floating_blur: bool,
     pub icon_color: u32,
     pub progress_color: u32,
     #[serde(rename = "Left", alias = "left")]
@@ -27,6 +28,7 @@ impl Default for Settings {
             auto_hide_player: false,
             background: None,
             transparent: false,
+            floating_blur: true,
             icon_color: 0x85e4cf,
             progress_color: 0x538e91,
             left: None,
@@ -60,6 +62,9 @@ impl Settings {
     pub fn is_transparent(&self) -> bool {
         self.background.is_none() && (!self.floating || self.transparent)
     }
+    pub fn is_blurred(&self) -> bool {
+        self.floating && self.floating_blur && !self.transparent
+    }
     pub fn width(&self, available: bool) -> i32 {
         if self.player_visible(available) {
             420
@@ -86,8 +91,10 @@ mod tests {
         assert!(s.is_transparent());
         s.floating = true;
         assert!(!s.is_transparent());
+        assert!(s.is_blurred());
         s.transparent = true;
         assert!(s.is_transparent());
+        assert!(!s.is_blurred());
         s.background = Some(0x123456);
         assert!(!s.is_transparent());
     }
